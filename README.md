@@ -3,22 +3,14 @@
 PPT-GPU is a scalable and flexible framework to predict the performance of GPUs running general purpose workloads. PPT-GPU can use the virtual (PTX) or the native (SASS) ISAs without sacrificing accuracy, ease of use, or portability. The tool is currently focused on NVIDIA GPUs. We plan to extend our approach to model other vendors' GPUs such as AMD and Intel.
 
 ```bash
+# trace apps
 LD_PRELOAD=/root/ana_model/tracing_tool/tracer.so python example_chat_completion.py
-python main.py --app ../apps/Llama2-1024-4-16-fp16/ --sass --config RTX3090 --kernel 2
-python main.py --app ../apps/Llama2-1024-4-16-fp16/ --sass --config RTX3090
-python main.py --app ../apps/Llama2-1024-8-24-fp16/ --sass --config RTX3090
-python main.py --app ../apps/Llama2-4096-32-16-fp16/ --sass --config RTX3090 --kernel 39
+# run analysis
 python main.py --app ../apps/mini-Llama2/ --config RTX3090 --useMPI 0
-
+# run with mpi
 PATH=/home/caosh/mpich-install/bin:$PATH ; export PATH
-which mpicc
-which mpiexec
 mpiexec -n 3 python3 main.py --app ../apps/Llama2-4096-32-34-fp16/ --sass --config RTX3090 --kernel 1
-
-python -W ignore main.py --app ../apps/Linear/ --sass --config RTX3090 --granularity 1 --method GCoM
-python -W ignore main.py --app ../apps/Llama2/ --sass --config RTX3090 --granularity 1 --method GCoM
-python ppt.py --app ../apps/transformer4/ --sass --config RTX2080Ti --granularity 1 --method GCoM > tranformer41.out
-
+# run proprecessing
 python proprecess.py Llama2-4096-32-130-fp16_
 python proprecess.py Llama2-4096-32-130-fp16_NTM
 ```
@@ -38,12 +30,10 @@ python proprecess.py Llama2-4096-32-130-fp16_NTM
                                          |---sub_core_block4
 ```
 
-## TODO
-
 - 添加参数
   - use_MPI
-  - use_NTM
-  - path_affix
+- 删除参数
+  - sass or ptx
 
 ## Papers
 
@@ -183,13 +173,6 @@ PPT-GPU is part of the original PPT (<https://github.com/lanl/PPT>) and is Uncla
 - Export Control Review Information: DOC-U.S. Department of Commerce, EAR99
 - B&R Code: YN0100000
 
-LD_PRELOAD=/root/ana_model/tracing_tool/tracer.so python example_chat_completion.py
-python ppt.py --app apps/linear/ --sass --config TITANV --granularity 1 --method GCoM
-
-python -W ignore ppt.py --app apps/Linear/ --sass --config RTX2080Ti --granularity 1 --method GCoM
-python -W ignore ppt.py --app apps/Llama2/ --sass --config RTX3090 --granularity 1 --method GCoM
-python ppt.py --app apps/transformer4/ --sass --config RTX2080Ti --granularity 1 --method GCoM > tranformer41.out
-
 ## License
 
 &copy 2017. Triad National Security, LLC. All rights reserved.
@@ -199,79 +182,3 @@ This program was produced under U.S. Government contract 89233218CNA000001 for L
 All rights in the program are reserved by Triad National Security, LLC, and the U.S. Department of Energy/National Nuclear Security Administration. The Government is granted for itself and others acting on its behalf a nonexclusive, paid-up, irrevocable worldwide license in this material to reproduce, prepare derivative works, distribute copies to the public, perform publicly and display publicly, and to permit others to do so.
 
 Recall that this copyright notice must be accompanied by the appropriate open source license terms and conditions. Additionally, it is prudent to include a statement of which license is being used with the copyright notice. For example, the text below could also be included in the copyright notice file: This is open source software; you can redistribute it and/or modify it under the terms of the Performance Prediction Toolkit (PPT) License. If software is modified to produce derivative works, such modified software should be clearly marked, so as not to confuse it with the version available from LANL. Full text of the Performance Prediction Toolkit (PPT) License can be found in the License file in the main development branch of the repository.
-
-kernel_name = *Z20GPU_forward_pass_gruPfS_S_S_S_S_S_S_S_S_S*
-kernel_launch_uid = 1
-gpu_sim_cycle = 20250
-gpu_sim_insn = 104698
-gpu_ipc =       5.1703
-gpu_tot_sim_cycle = 20250
-gpu_tot_sim_insn = 104698
-gpu_tot_ipc =       5.1703
-gpu_tot_issued_cta = 1
-gpu_occupancy = 12.4400%
-gpu_tot_occupancy = 12.4400%
-max_total_param_size = 0
-gpu_stall_dramfull = 0
-gpu_stall_icnt2sh    = 0
-partiton_level_parallism =       0.1918
-partiton_level_parallism_total  =       0.1918
-partiton_level_parallism_util =       1.0000
-partiton_level_parallism_util_total  =       1.0000
-L2_BW  =       8.3758 GB/Sec
-L2_BW_total  =       8.3758 GB/Sec
-gpu_total_sim_rate=20939
-
-kernel_name = *Z20GPU_forward_pass_gruPfS_S_S_S_S_S_S_S_S_S*
-kernel_launch_uid = 2
-gpu_sim_cycle = 18649
-gpu_sim_insn = 104800
-gpu_ipc =       5.6196
-gpu_tot_sim_cycle = 38899
-gpu_tot_sim_insn = 209498
-gpu_tot_ipc =       5.3857
-gpu_tot_issued_cta = 2
-gpu_occupancy = 12.4670%
-gpu_tot_occupancy = 12.4527%
-max_total_param_size = 0
-gpu_stall_dramfull = 0
-gpu_stall_icnt2sh    = 0
-partiton_level_parallism =       0.2082
-partiton_level_parallism_total  =       0.1996
-partiton_level_parallism_util =       1.0000
-partiton_level_parallism_util_total  =       1.0000
-L2_BW  =       9.0948 GB/Sec
-L2_BW_total  =       8.7205 GB/Sec
-gpu_total_sim_rate=23277
-
-{'kernel_name': 'volta_sgemm_128x32_tn',
-'GCoM': 7371,
-'C_base_ij': 1782.0, 'S_ComData_ij': 432, 'S_MemData_ij': 1442, 'C_idle_i': 376, 'C_idle_ij': 0, 'S_ComStruct_i': 3306.0, 'S_MemStruct_i': 0, 'S_MSHR_i': 0, 'S_NoC_i': 22, 'S_Dram_i': 11,
-'total_instr_executed': 7128, 'num_warp_inst': 891, 'warps_per_SM': 8}
-
-- Kernel cycles:
-  - GPU active cycles (min): 4,303
-  - GPU active cycles (max): 7,531
-  - SM active cycles (sum): 7,531
-  - SM elapsed cycles (sum): 602,480
-
-kernel_launch_uid = 1
-gpu_sim_cycle = 10035
-gpu_sim_insn = 189664
-gpu_ipc =      18.9002
-gpu_tot_sim_cycle = 10035
-gpu_tot_sim_insn = 189664
-gpu_tot_ipc =      18.9002
-gpu_tot_issued_cta = 1
-gpu_occupancy = 24.1705%
-gpu_tot_occupancy = 24.1705%
-max_total_param_size = 0
-gpu_stall_dramfull = 0
-gpu_stall_icnt2sh    = 0
-partiton_level_parallism =       0.0256
-partiton_level_parallism_total  =       0.0256
-partiton_level_parallism_util =       1.0000
-partiton_level_parallism_util_total  =       1.0000
-L2_BW  =       1.1187 GB/Sec
-L2_BW_total  =       1.1187 GB/Sec
-gpu_total_sim_rate=94832
