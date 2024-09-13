@@ -3,76 +3,66 @@ import os, sys
 
 # Project Name format is project_name
 Project_name = sys.argv[1]
-outputs_dir = os.path.join("../outputs",Project_name)
-# if outputs_dir not in os.listdir():
-#     os.mkdir(outputs_dir)
+outputs_dir = os.path.join("../outputs", Project_name)
+output_file = os.path.join("../outputs", Project_name + ".csv")
 
-output_file = Project_name + ".csv"
+files = os.listdir(outputs_dir)
 
-files= os.listdir(outputs_dir)
-# files.remove("all_kernels_all_info.out")
 def get_idx(name):
     name_token = name.split('_')
     idx = int(name_token[0])
     return idx
+
 def cmp_file_name(a):
     idxa = get_idx(a)
     return idxa
-files.sort(key = cmp_file_name)
-# f = open(os.path.join(outputs_dir,filename))               # 返回一个文件对象 
-# line = f.readline()               # 调用文件的 readline()方法 
-kernel_name_GCoM = []
-GCoM_KLL_ID = []
-GCoM_KLL = []
-GCoM_ID = []
-GCoM = []
-Kernel_id = []
-time_GCoM = []
 
-for file in files:
-    # if get_idx(file) != 40:
-    #     continue
-    f = open(os.path.join(outputs_dir,file))  
-    line = f.readline() 
-    keys = line[:-1].split('!')
+files.sort(key=cmp_file_name)
+
+# Initialize the lists to store data
+columns = []
+data_lists = {}
+
+# Read the first file to determine the order of keys
+with open(os.path.join(outputs_dir, files[0]), 'r') as f:
     line = f.readline()
-    while line:                   # 后面跟 ',' 将忽略换行符 
-        #print(line, end = '')　      # 在 Python 3 中使用 
-        
-        tokens = line[:-1].split('!')
-        reduction_dict = {}
-        for k,v in zip(keys, tokens):
-            reduction_dict[k] = v
-        kernel_name_GCoM.append(reduction_dict["kernel_name"])
-        Kernel_id.append(reduction_dict["kernel_id"])
-        GCoM_KLL_ID.append(
-            float(reduction_dict["GCoM+KLL+ID"]) 
-        )
-        GCoM_KLL.append(
-            float(reduction_dict["GCoM+KLL"]) 
-        )
-        GCoM_ID.append(
-            float(reduction_dict["GCoM+ID"])
-        )
-        GCoM.append(
-            float(reduction_dict["GCoM"]) 
-        )
+    columns = line[:-1].split('!')
 
-        time_GCoM.append(float(reduction_dict["simulation_time_memory"]) + float(reduction_dict["simulation_time_compute"])+ float(reduction_dict["simulation_time_parse"]))
+    # Initialize data_lists with empty lists for each column
+    for col in columns:
+        data_lists[col] = []
+
+# Now read all files and fill in the data
+for file in files:
+    with open(os.path.join(outputs_dir, file), 'r') as f:
+        line = f.readline()  # Skip the header line since we already determined it
         line = f.readline()
-    f.close()  
 
-dataframe = pd.DataFrame({'kernel_id':Kernel_id,
-                          'kernel_name_GCoM':kernel_name_GCoM,
-                          'GCoM':GCoM,                          
-                          'GCoM+KLL':GCoM_KLL,
-                          'GCoM+KLL+ID':GCoM_KLL_ID,
-                          'GCoM+ID':GCoM_ID,
-                          'time_GCoM':time_GCoM,
-                          })
+        while line:
+            tokens = line[:-1].split('!')
+            reduction_dict = dict(zip(columns, tokens))
+            
+            # Append values or None if key is missing
+            for col in columns:
+                if col in reduction_dict:
+                    try:
+                        data_lists[col].append(float(reduction_dict[col]))
+                    except ValueError:
+                        data_lists[col].append(reduction_dict[col])
+                else:
+                    data_lists[col].append(None)
 
-dataframe.to_csv(output_file,index=False,sep=',')
-print(sum(GCoM_KLL_ID),
-    #   sum(insts_GCoM),
-      sum(time_GCoM),
-      "{:.4f}".format(sum(GCoM)/sum(GCoM_KLL_ID)))
+            line = f.readline()
+
+# Ensure that all lists have the same length
+length = len(next(iter(data_lists.values())))
+assert all(len(lst) == length for lst in data_lists.values()), "Lists are not of the same length"
+
+# Create DataFrame from collected data
+df = pd.DataFrame(data_lists, columns=columns)
+df.to_csv(output_file, index=False, sep=',')
+
+# Calculate and print the sums
+print(sum(df['GCoM+KLL+ID']),
+      sum(df['simulation_time_memory'] + df['simulation_time_compute'] + df['simulation_time_parse']),
+      "{:.4f}".format(sum(df['GCoM']) / sum(df['GCoM+KLL+ID'])))
