@@ -487,7 +487,7 @@ class Kernel():
 					is_mem: whether the stall is caused by L1 cache access
 			'''
 			if x == 0:
-				return 0, False, 0, False
+				return 0, 0, None
 			issue_base_var = issue_base(x, ik)
 			issue_k_m_var, unit = issue_k_m(x, fu, ik)
 			num_act_sub_core = min(x, num_sub_cores_per_SM)

@@ -26,15 +26,36 @@ units_latency = {
     "l2_cache_access"   :   213,
     "local_mem_access"  :   302,
     "const_mem_access"  :   8,
-    "shared_mem_access" :   33,
+    "shared_mem_ld"     :   33,
+    "shared_mem_st"     :   33,# ld 23 st 19
     "tex_mem_access"    :   436,
     "tex_cache_access"  :   86,
     "atomic_operation"  :   245,
     #ThreadBlock
-    "TB_launch_ovhd"    :   700
+    "kernel_launch_ovhd"    :   1980
 
 }
+initial_interval = {
 
+    # Initiation interval (II) = threadsPerWarp / #FULanes
+    "iALU"              :   32 / 16,
+    "fALU"              :   32 / 16,
+    "hALU"              :   32 / 16,
+    "dALU"              :   32 / 4,
+
+    "SFU"               :   32 / 4,
+    "dSFU"              :   32 / 4,
+
+    "LDST"              :   32 / 8,
+    
+    # "bTCU"              :   64,
+    "iTCU"              :   32 / 1,
+    "hTCU"              :   32 / 1,
+    "fTCU"              :   32 / 1,
+    "dTCU"              :   32 / 1,
+    "BRA"               :   32 / 1,
+    "EXIT"              :   32 / 16,
+}
 
 sass_isa = {
 
@@ -269,21 +290,4 @@ ptx_isa = { # ---> (ptx v.72)
     "bra"               : "BRA",
     "call"              : "BRA",
     
-}
-
-initial_interval = {
-
-    #ALU Units initial interval
-    "iALU"              :   2,
-    "fALU"              :   4,
-    "hALU"              :   4,
-    "dALU"              :   64,
-    "SFU"               :   8,
-    "dSFU"              :   130,
-    "bTCU"              :   64,
-    "iTCU"              :   64,
-    "hTCU"              :   64,
-    "BRA"               :   4,
-
-
 }

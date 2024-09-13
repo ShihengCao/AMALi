@@ -28,7 +28,8 @@ uarch = {
     
     # base GPU clock speed in HZ                
     "clockspeed"                        :  1200 * 10**6,
-
+    "num_sub_cores"                     :  4,
+    "num_L1_cache_banks"                :  4,
     # streaming multiprocessors (SMs)
     "num_SMs"                           :  80,
     # represents [INT] units; ** THIS UNIT IS IN VOLTA & TURING ONLY ** 
@@ -72,7 +73,7 @@ uarch = {
     "l2_cache_line_size"                :  64,             
     "l2_cache_associativity"            :  24,          
     "shared_mem_size"                   :  98 * 1024,
-
+    "l1_cache_bandwidth"                :  78.6924,
     # L2 total size 4.5 MB, each subpartition is 96 KB. This gives ~ 48 memory parition
     "num_l2_partitions"	                :  48,
     # Volta has HBM which has 24 channels each (128 bits) 16 bytes width

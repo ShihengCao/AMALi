@@ -208,9 +208,14 @@ def main():
     ## Target ISA Latencies ##
     ##############################
     try:
+        print(f"Attempting to import from: hardware.ISA.{gpu_configs.uarch['gpu_arch']}")
         ISA = importlib.import_module("hardware.ISA."+gpu_configs.uarch["gpu_arch"])
-    except:
-        print("\n[Error]\nISA for <<"+gpu_configs.uarch["gpu_arch"]+">> doesn't exists in hardware/ISA directory")
+    except Exception as e:
+        print(f"\n[Error]\nFailed to import ISA for <<{gpu_configs.uarch['gpu_arch']}>>")
+        print(f"Error details: {str(e)}")
+        print(f"Current working directory: {os.getcwd()}")
+        print(f"Contents of hardware/ISA directory:")
+        print(os.listdir("hardware/ISA"))
         sys.exit(1)
     units_latency = ISA.units_latency
     sass_isa = ISA.sass_isa
