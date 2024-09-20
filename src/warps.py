@@ -85,6 +85,9 @@ class Warp(object):
         for inst in self.tasklist:
             self.current_inst += 1
             latency = self.get_inst_latency(inst)
+            # caculate the latnecy for TCU
+            if "TCU" in inst[0]:
+                latency = latency / self.gpu.units_latency[inst[0]] 
             
             max_dep = -1
             stall_reason = 0
@@ -121,6 +124,8 @@ class Warp(object):
                 hw_unit_list.append(inst[0])
             elif "LD" in inst[0] or "ST" in inst[0] or "ATOM" in inst[0] or "RED" in inst[0]:
                 hw_unit_list.append("LDST")
+            elif "TCU" in inst[0]: # for TCU, we will use latency as the hw unit type
+                hw_unit_list.append("TCU"+str(latency))
             else:
                 hw_unit_list.append(None)
 

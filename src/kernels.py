@@ -456,21 +456,24 @@ class Kernel():
 			issue_km = -100
 			max_unit = None
 			num_act_sub_core = min(x, num_sub_cores_per_SM)
-			for unit in functional_units:
-				iim = self.acc.initial_interval[unit]
-				im = functional_units[unit] # num of instuction which used the unit
+			# we accumulate all sass excuted on Tensor core
+			tensor_core_iim = 0
+			for unit in functional_units:				
 				if "TCU" in unit:
-					cur_issue_km = im * iim * x / (num_act_sub_core * issue_rate)
-					if self.logger is not None:
-						self.logger.write(im,iim,x,num_act_sub_core)
+					iim = float(unit[3:]) # remove "TCU" prefix, e.g., unit = "TCU32.0", then iim = 32.0
 				else:
-					cur_issue_km = im * iim * x / (num_act_sub_core * issue_rate)
-
+					iim = self.acc.initial_interval[unit]
+				im = functional_units[unit] # num of instuction which used the unit
+				cur_issue_km = im * iim * x / (num_act_sub_core * issue_rate)
+				if "TCU" in unit:
+					tensor_core_iim += iim
 				if cur_issue_km > issue_km:
 					max_unit = unit
 
 				issue_km = max(issue_km, cur_issue_km)
-
+			if tensor_core_iim > issue_km:
+				max_unit = "TCU"
+			issue_km = max(issue_km, tensor_core_iim)
 			return issue_km, max_unit			
 
 		def issue_max(x, ik, fu, bk):

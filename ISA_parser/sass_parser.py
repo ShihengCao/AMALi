@@ -141,12 +141,21 @@ def parse(units_latency, sass_instructions, sass_path, logger):
                         latency = units_latency[unit]        
                 # data type of accumulator influence the latency   
                 elif "HMMA" in opcode:
+                    flops = 0
+                    if "16816" in opcodeAndOption:
+                        flops = 16 * 8 * 16
+                    elif "1688" in opcodeAndOption:
+                        flops = 8 * 8 * 16
+                    elif "848" in opcodeAndOption: 
+                        flops = 8 * 8 * 8
+                    else:
+                        print("[Error] Unknown HMMA instruction")
+                        
                     if "F32" in opcodeAndOption:
                         unit = "fTCU"
-                        latency = units_latency[unit]
                     else:
                         unit = "hTCU"
-                        latency = units_latency[unit]
+                    latency = flops
                 else:
                     unit = sass_instructions[opcode]
                     latency = units_latency[unit]

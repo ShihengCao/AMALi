@@ -6,10 +6,10 @@ PPT-GPU is a scalable and flexible framework to predict the performance of GPUs 
 # trace apps
 LD_PRELOAD=/root/ana_model/tracing_tool/tracer.so python example_chat_completion.py
 # run analysis
-python main.py --app ../apps/mini-Llama2/ --config RTX3090 --useMPI 0
+python main.py --app ../RTX3090_apps/mini-Llama2/ --config RTX3090 --useMPI 0 --kernel 13
 # run with mpi
 PATH=/home/caosh/mpich-install/bin:$PATH ; export PATH
-mpiexec -n 3 python3 main.py --app ../apps/Llama2-4096-32-34-fp16/ --sass --config RTX3090 --kernel 1
+mpiexec -n 3 python main.py --app ../RTX3090_apps/Llama2-4096-32-130-fp16/ --config RTX3090 --kernel 13
 # run proprecessing
 python proprecess.py Llama2-4096-32-130-fp16_
 python proprecess.py Llama2-4096-32-130-fp16_NTM
@@ -18,7 +18,7 @@ python proprecess.py Llama2-4096-32-130-fp16_NTM
 ## SM block architecture in kernel
 
 ```bash
-  SM_block_list:--|------- block_list1 --|---sub_core_block1 -> single warp tasklist
+  SM_block_list:--|------- block_list1 --|---sub_core_block1 -> single warp tasklists
                   |					             |---sub_core_block2
                   |					             |---sub_core_block3 
                   |					             |---sub_core_block4    

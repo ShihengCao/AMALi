@@ -5,7 +5,7 @@ from sklearn.cluster import KMeans
 functional_units_list = ["iALU", "fALU", "hALU", "dALU", 
                          "SFU", "dSFU", 
                          "LDST",
-                         "iTCU", "hTCU", "fTCU", "dTCU", 
+                        #  "iTCU", "hTCU", "fTCU", "dTCU", 
                          "BRA", "EXIT",]
 
 uniform_insts_list = ["R2UR","REDUX", "S2UR","UBMSK","UBREV","UCLEA","UF2FP",  "UFLO" ,"UIADD3" ,"UIADD3.64" ,"UIMAD" ,

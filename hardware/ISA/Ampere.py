@@ -22,10 +22,12 @@ units_latency = {
 
     "SFU"               :  23,
     "dSFU"              :  16,
-
+    # for tensor core we use flops/cycle instead and will calculate the latency later
     "iTCU"              :  4,
-    "hTCU"              :  16, # accumulator FP16
-    "fTCU"              :  32, # accumulator FP32
+    "hTCU"              :  128, # accumulator FP16
+    "fTCU"              :  64, # accumulator FP32
+    # "hTCU"              :  16, # accumulator FP16
+    # "fTCU"              :  32, # accumulator FP32
     "dTCU"              :  64,
 
     "BRA"               :  4,
@@ -84,12 +86,16 @@ initial_interval = {
     "dSFU"              :   32 / 1,
 
     "LDST"              :   32 / 4,
-    
+    # we will not use initial_interval for TCU for now
     # "bTCU"              :   64,
     "iTCU"              :   32 / 1,
-    "hTCU"              :   32 / 2,
-    "fTCU"              :   32 / 1,
+    "hTCU"              :   128, # accumulator FP16
+    "fTCU"              :   64, # accumulator FP32
     "dTCU"              :   32 / 1,
+    # "iTCU"              :   32 / 1,
+    # "hTCU"              :   32 / 2,
+    # "fTCU"              :   32 / 1,
+    # "dTCU"              :   32 / 1,
     "BRA"               :   32 / 1,
     "EXIT"              :   32 / 16,
 }
