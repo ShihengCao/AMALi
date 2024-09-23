@@ -6,7 +6,7 @@ Project_name = sys.argv[1]
 workspace_path = os.path.join("..", "outputs")
 outputs_dir = os.path.join(workspace_path, Project_name)
 output_file = os.path.join(workspace_path, Project_name + ".csv")
-ground_truth_dir = os.path.join(workspace_path, "HW")
+ground_truth_dir = os.path.join('.', "HW")
 ground_truth_file = os.path.join(ground_truth_dir, Project_name + "_10_m.csv")
 
 files = os.listdir(outputs_dir)
