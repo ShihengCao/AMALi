@@ -501,6 +501,7 @@ class Kernel():
 		
 		def com_struct_and_mem_struct(x):
 			com, mem = 0, 0
+			all_struct_info = {}
 			for interval_info in interval_list:
 				if "issue_stage" not in interval_info:
 					continue
@@ -508,18 +509,32 @@ class Kernel():
 				fu = interval_info["functional_units"] if "functional_units" in interval_info else {}
 				mem_acesss_num = interval_info["mem_access_num"]
 				issue_max_var, is_mem, unit = issue_max(x, ik, fu, mem_acesss_num)
+				issue_base_var = issue_base(x, ik)
 				if is_mem:
-					mem += issue_max_var - issue_base(x, ik)
-					interval_info["struct_info"] = {"type:":"L1 cache", "value": issue_max_var}
+					mem += issue_max_var - issue_base_var
+					interval_info["struct_info"] = {"type:":"L1 cache", "value": issue_max_var, "base": issue_base_var}
+					if "L1 cache" not in all_struct_info:
+						all_struct_info["L1 cache"] = issue_max_var - issue_base_var
+					else:
+						all_struct_info["L1 cache"] += issue_max_var - issue_base_var
 				else:
-					com += issue_max_var - issue_base(x, ik)
-					interval_info["struct_info"] = {"type:":unit, "value": issue_max_var}
-			return com, mem
+					com += issue_max_var - issue_base_var
+					interval_info["struct_info"] = {"type:":unit, "value": issue_max_var, "base": issue_base_var}
+					if unit not in all_struct_info:
+						all_struct_info[unit] = issue_max_var - issue_base_var
+					else:
+						all_struct_info[unit] += issue_max_var - issue_base_var
+			return com, mem, all_struct_info
 
-		com1, mem1 = com_struct_and_mem_struct(num_cncr_warps)
-		com2, mem2 = com_struct_and_mem_struct(warps_per_SM % num_cncr_warps)
+		com1, mem1, all_struct_info1 = com_struct_and_mem_struct(num_cncr_warps)
+		com2, mem2, all_struct_info2 = com_struct_and_mem_struct(warps_per_SM % num_cncr_warps)
 		S_ComStruct_i = com1 * (warps_per_SM // num_cncr_warps) + com2
 		S_MemStruct_i = mem1 * (warps_per_SM // num_cncr_warps) + mem2
+		if warps_per_SM // num_cncr_warps > 0:
+			self.logger.write(all_struct_info1)
+		if warps_per_SM % num_cncr_warps > 0:
+			self.logger.write(all_struct_info2)
+			
 		
 		MDM_output = self.process_MDM(interval_list, active_SMs, umem_hit_rate, warps_per_SM)
 		
