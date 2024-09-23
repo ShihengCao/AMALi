@@ -252,7 +252,6 @@ class Accelerator(object):
 		self.shared_mem_st_latency = self.units_latency["shared_mem_st"]
 		self.shared_mem_ld_latency = self.units_latency["shared_mem_ld"]
 		self.atomic_op_access_latency = self.units_latency["atomic_operation"]
-		self.kernel_launch_overhead = self.units_latency["kernel_launch_ovhd"]
 
 		self.hw_units = {}
 		self.tasklist = {}

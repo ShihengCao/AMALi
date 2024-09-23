@@ -5,7 +5,7 @@ from sklearn.cluster import KMeans
 functional_units_list = ["iALU", "fALU", "hALU", "dALU", 
                          "SFU", "dSFU", 
                          "LDST",
-                        #  "iTCU", "hTCU", "fTCU", "dTCU", 
+                         "iTCU", "hTCU", "fTCU", "dTCU", 
                          "BRA", "EXIT",]
 
 uniform_insts_list = ["R2UR","REDUX", "S2UR","UBMSK","UBREV","UCLEA","UF2FP",  "UFLO" ,"UIADD3" ,"UIADD3.64" ,"UIMAD" ,
@@ -91,7 +91,7 @@ def print_output_info(pred_out, rptv_warp_GCoM_output):
 
 def write_to_file(pred_out):
     # mkdir if target dir is not exist
-    output_dir = os.path.join("..","outputs")
+    output_dir = os.path.join("..","GCoM_outputs")
     project_name = pred_out["app_path"].split("/")[-2]
     project_output_dir = os.path.join(output_dir,project_name)
     # check output_dir is exist or not
@@ -109,7 +109,7 @@ class Logger():
         self.pred_out = pred_out
         self.is_active = is_active
         # mkdir if target dir is not exist
-        output_dir = os.path.join("..","logs")
+        output_dir = os.path.join("..","GCoM_logs")
         project_name = pred_out["app_path"].split("/")[-2]
         project_output_dir = os.path.join(output_dir,project_name)
         # check output_dir is exist or not

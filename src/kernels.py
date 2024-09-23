@@ -70,7 +70,6 @@ class Kernel():
 		pred_out["warps_instructions_executed"] = 0
 		pred_out["ipc"] = 0.0
 		# pred_out["l1_cache_bypassed"] = self.acc.l1_cache_bypassed
-		pred_out["kernel_launch_intercept"] = self.acc.kernel_launch_overhead
 		# pred_out["tot_warps_instructions_executed"] = 0
 		pred_out["AMAT"] = 0.0
 		pred_out["ACPAO"] = 0.0
@@ -93,15 +92,8 @@ class Kernel():
 		pred_out["total_num_workloads"]  = self.kernel_grid_size # the amount of blocks in the grid.
 		pred_out["active_SMs"] = min(self.acc.num_SMs, pred_out["total_num_workloads"]) # if #blocks > #SMs, then all SM will be active. else active as many SMs as the #blocks
 		pred_out["allocated_active_warps_per_block"] = int(ceil((float(self.kernel_block_size)/float(self.acc.warp_size)),1))
-		# calculate kernel launch latency
-		# print(pred_out["allocated_active_warps_per_block"],pred_out["allocated_active_blocks_per_SM"],
-		# pred_out["total_num_workloads"],pred_out["kernel_launch_intercept"])
-		slope = 0.0036 * pred_out["allocated_active_warps_per_block"] ** 2 \
-			- 0.0366 * pred_out["allocated_active_warps_per_block"] + 1.1891
-		self.kernel_launch_latency = ceil(slope * pred_out["total_num_workloads"] + pred_out["kernel_launch_intercept"],1)
 
 		self.logger = Logger(self.pred_out, kernel_info["log"])
-		# print(self.kernel_launch_latency)
 		# return 0
 
 	def kernel_call_GCoM(self, data, name, num):
@@ -313,22 +305,11 @@ class Kernel():
 
 							if max_GCoM_by_warp_num["GCoM"] > rptv_warp_GCoM_output["GCoM"]:
 								C_idle_i_orig = max_GCoM_by_warp_num["GCoM"] - rptv_warp_GCoM_output["GCoM"]
-						rptv_warp_GCoM_output["C_idle_i_orig"] = C_idle_i_orig
-						rptv_warp_GCoM_output["GCoM"] += rptv_warp_GCoM_output["C_idle_i_orig"]
+						rptv_warp_GCoM_output["C_idle_i"] = C_idle_i_orig
+						rptv_warp_GCoM_output["GCoM"] += rptv_warp_GCoM_output["C_idle_i"]
 
 					tmp_idx += 1
 
-		# update C_idle_i
-		# backup the max cycle depends on warp number divergence
-		if max_sub_core_instr > rptv_warp_GCoM_output["C_base_ij"]:
-			rptv_warp_GCoM_output["C_idle_i_ID"] = max_sub_core_instr - rptv_warp_GCoM_output["C_base_ij"]
-		else:
-			rptv_warp_GCoM_output["C_idle_i_ID"] = 0
-		# add the kernel launch overhead to GCoM
-		rptv_warp_GCoM_output["Kernel_launch_latency"] = self.kernel_launch_latency
-		rptv_warp_GCoM_output["GCoM+KLL"] = rptv_warp_GCoM_output["GCoM"] + self.kernel_launch_latency
-		rptv_warp_GCoM_output["GCoM+ID"] = rptv_warp_GCoM_output["GCoM"] + rptv_warp_GCoM_output["C_idle_i_ID"] + rptv_warp_GCoM_output["C_idle_ij_ID"]
-		rptv_warp_GCoM_output["GCoM+KLL+ID"] = rptv_warp_GCoM_output["GCoM+ID"] + self.kernel_launch_latency + rptv_warp_GCoM_output["C_idle_i_ID"] + rptv_warp_GCoM_output["C_idle_ij_ID"] 
 		return rptv_warp_GCoM_output
 		
 	def process_GCoM(self, warp: Warp, 
@@ -452,24 +433,14 @@ class Kernel():
 			issue_km = -100
 			max_unit = None
 			num_act_sub_core = min(x, num_sub_cores_per_SM)
-			# we accumulate all sass excuted on Tensor core
-			tensor_core_iim = 0
-			for unit in functional_units:				
-				if "TCU" in unit:
-					iim = float(unit[3:]) # remove "TCU" prefix, e.g., unit = "TCU32.0", then iim = 32.0
-				else:
-					iim = self.acc.initial_interval[unit]
+			for unit in functional_units:	
+				iim = self.acc.initial_interval[unit]
 				im = functional_units[unit] # num of instuction which used the unit
 				cur_issue_km = im * iim * x / (num_act_sub_core * issue_rate)
-				if "TCU" in unit:
-					tensor_core_iim += iim
 				if cur_issue_km > issue_km:
 					max_unit = unit
 
 				issue_km = max(issue_km, cur_issue_km)
-			if tensor_core_iim > issue_km:
-				max_unit = "TCU"
-			issue_km = max(issue_km, tensor_core_iim)
 			return issue_km, max_unit			
 
 		def issue_max(x, ik, fu, bk):
@@ -553,17 +524,14 @@ class Kernel():
 			"C_base_ij": C_base_ij,
 			"S_ComData_ij": S_ComData_ij,
 			"S_MemData_ij": S_MemData_ij,
-			"C_idle_ij_orig": C_idle_ij,
-			"C_idle_ij_ID": 0,
+			"C_idle_ij": C_idle_ij,
 			"S_ComStruct_i": S_ComStruct_i,
 			"S_MemStruct_i": S_MemStruct_i,
 			"S_MSHR_i": S_MSHR_i,
 			"S_NoC_i": S_NoC_i,
 			"S_Dram_i": S_Dram_i,			
-			"C_idle_i_orig": C_idle_i,
-			"C_idle_i_ID": 0,
+			"C_idle_i": C_idle_i,
 		}
-
 
 		self.logger.write("-----------")
 		self.logger.write("total_cycles:",total_cycles)
@@ -616,13 +584,8 @@ class Kernel():
 					max_cycles_in_sub_core = tmp_warp_GCoM_output["GCoM"]
 
 		if max_cycles_in_sub_core > rptv_output["GCoM"]:
-			rptv_output["C_idle_ij_orig"] += max_cycles_in_sub_core - rptv_output["GCoM"]
-			rptv_output["GCoM"] += rptv_output["C_idle_ij_orig"]
-
-		if max_inst_cnt > rptv_output["C_base_ij"]:
-			rptv_output["C_idle_ij_ID"] = max_inst_cnt - rptv_output["C_base_ij"]
-		else:
-			rptv_output["C_idle_ij_ID"] = 0
+			rptv_output["C_idle_ij"] += max_cycles_in_sub_core - rptv_output["GCoM"]
+			rptv_output["GCoM"] += rptv_output["C_idle_ij"]
 
 	def process_MDM(self, interval_analysis, num_SM: int, umem_hit_rate: float, W: int):
 		"""

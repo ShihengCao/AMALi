@@ -80,14 +80,10 @@ class Warp(object):
         mem_access_type_list = []
         hw_unit_list = []
         issue_cycle_list = [-1]
-        # interval_list = []
-        # stall_type_count = {}
+
         for inst in self.tasklist:
             self.current_inst += 1
             latency = self.get_inst_latency(inst)
-            # caculate the latnecy for TCU
-            if "TCU" in inst[0]:
-                latency = latency / self.gpu.units_latency[inst[0]] 
             
             max_dep = -1
             stall_reason = 0
@@ -107,11 +103,6 @@ class Warp(object):
                     stall_reason_list.append(1)
                 else:
                     stall_reason_list.append(2)
-                # if stall_inst[0] not in stall_type_count:
-                #     stall_type_count[stall_inst[0]] = 1
-                # else:
-                #     stall_type_count[stall_inst[0]] += 1
-                
             else:
                 # not stall, serial issue next instruction
                 stall_reason_list.append(0)
@@ -122,16 +113,12 @@ class Warp(object):
 
             if inst[0] in functional_units_list:
                 hw_unit_list.append(inst[0])
-            elif "LD" in inst[0] or "ST" in inst[0] or "ATOM" in inst[0] or "RED" in inst[0]:
-                hw_unit_list.append("LDST")
-            elif "TCU" in inst[0]: # for TCU, we will use latency as the hw unit type
-                hw_unit_list.append("TCU"+str(latency))
             else:
                 hw_unit_list.append(None)
 
             if inst[0] in ["ATOMIC_OP", "GLOB_MEM_LD","LOCAL_MEM_LD", "GLOB_MEM_LD_STS"]:
                 mem_access_type_list.append(1) # 1 means L1 cache access, 0 means other memory access or compute instrucion
-            elif inst[0] in ["GLOB_MEM_ST","LOCAL_MEM_ST"]:
+            elif inst[0] in ["GLOB_MEM_ST","LOCAL_MEM_ST"]: # 2 means store instruction
                 mem_access_type_list.append(2)
             else:
                 mem_access_type_list.append(0)
