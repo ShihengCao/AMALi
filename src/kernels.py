@@ -99,10 +99,8 @@ class Kernel():
 		slope = 0.0036 * pred_out["allocated_active_warps_per_block"] ** 2 \
 			- 0.0366 * pred_out["allocated_active_warps_per_block"] + 1.1891
 		self.kernel_launch_latency = ceil(slope * pred_out["total_num_workloads"] + pred_out["kernel_launch_intercept"],1)
-		if kernel_info["log"]:
-			self.logger = Logger(self.pred_out)
-		else:
-			self.logger = None
+
+		self.logger = Logger(self.pred_out, kernel_info["log"])
 		# print(self.kernel_launch_latency)
 		# return 0
 
@@ -225,14 +223,14 @@ class Kernel():
 		pred_out["ipc"] = pred_out["warps_instructions_executed"] / pred_out["GCoM"]
 		# write output to file
 		write_to_file(pred_out)
+		# logging
+		self.logger.write("all_center_warp_idx and represetative warp index")
+		self.logger.write(all_center_warp_idx_list, represetative_index)
+		self.logger.write("pred_out:")
+		self.logger.write(pred_out)
+		self.logger.write("rptv_warp_GCoM_output:")
+		self.logger.write(rptv_warp_GCoM_output)
 		# print output info		
-		if self.logger is not None:
-			self.logger.write("all_center_warp_idx and represetative warp index")
-			self.logger.write(all_center_warp_idx_list, represetative_index)
-			self.logger.write("pred_out:")
-			self.logger.write(pred_out)
-			self.logger.write("rptv_warp_GCoM_output:")
-			self.logger.write(rptv_warp_GCoM_output)
 		print_output_info(pred_out, rptv_warp_GCoM_output)
 
 	def spawn_SM_tasklists(self, gpu, SM_id, tasklist, kernel_id, isa, avg_mem_lat, avg_atom_lat):
@@ -284,13 +282,12 @@ class Kernel():
 						interval_analysis_result = rptv_warp.interval_analyze()
 						pred_out["warps_instructions_executed"] = rptv_warp.current_inst * total_warp_num # used in calculating ipc
 
-						if self.logger is not None:
-							self.logger.write("profiling rtpv warp")
-							self.logger.write("args:",
-								"sub_core_warps_num:",sub_core_warps_num, 
-								"cur_SM_warps_num:",cur_SM_warps_num, 
-								"pred_out['active_SMs']:",pred_out["active_SMs"],
-								"pred_out['umem_hit_rate']:",pred_out["umem_hit_rate"])
+						self.logger.write("profiling rtpv warp")
+						self.logger.write("args:",
+							"sub_core_warps_num:",sub_core_warps_num, 
+							"cur_SM_warps_num:",cur_SM_warps_num, 
+							"pred_out['active_SMs']:",pred_out["active_SMs"],
+							"pred_out['umem_hit_rate']:",pred_out["umem_hit_rate"])
 							
 						rptv_warp_GCoM_output = self.process_GCoM(rptv_warp, interval_analysis_result,
 										sub_core_warps_num, cur_SM_warps_num, pred_out["active_SMs"],
@@ -311,9 +308,8 @@ class Kernel():
 											max_warp_per_SM // self.acc.num_warp_schedulers_per_SM, max_warp_per_SM, 
 											pred_out["active_SMs"], pred_out["umem_hit_rate"])
 							
-							if self.logger is not None:
-								self.logger.write("profiling rtpv warp based on max warp number in the SM")
-								self.logger.write(max_GCoM_by_warp_num)
+							self.logger.write("profiling rtpv warp based on max warp number in the SM")
+							self.logger.write(max_GCoM_by_warp_num)
 
 							if max_GCoM_by_warp_num["GCoM"] > rptv_warp_GCoM_output["GCoM"]:
 								C_idle_i_orig = max_GCoM_by_warp_num["GCoM"] - rptv_warp_GCoM_output["GCoM"]
@@ -553,20 +549,20 @@ class Kernel():
 			"C_idle_i_ID": 0,
 		}
 
-		if self.logger is not None:
-			self.logger.write("-----------")
-			self.logger.write("total_cycles:",total_cycles)
-			self.logger.write("-----------")
-			self.logger.write("num_warp_inst:",num_warp_inst)
-			self.logger.write("-----------")
-			instr_idx = 0
-			for interval in interval_list:
-				if "issue_stage" in interval:
-					self.logger.write(instr_idx, interval, end=' ')
-					instr_idx += interval["issue_stage"]
-				else:
-					self.logger.write(interval)
-			self.logger.write("------------")
+
+		self.logger.write("-----------")
+		self.logger.write("total_cycles:",total_cycles)
+		self.logger.write("-----------")
+		self.logger.write("num_warp_inst:",num_warp_inst)
+		self.logger.write("-----------")
+		instr_idx = 0
+		for interval in interval_list:
+			if "issue_stage" in interval:
+				self.logger.write(instr_idx, interval, end=' ')
+				instr_idx += interval["issue_stage"]
+			else:
+				self.logger.write(interval)
+		self.logger.write("------------")
 
 		return general_GCoM_output
 
@@ -598,8 +594,7 @@ class Kernel():
 			sub_core_warps_num = len(cur_sub_core.warp_list) 
 			if sub_core_warps_num > max_sub_core_warp_num:
 				max_sub_core_warp_num = sub_core_warps_num
-				if self.logger is not None:
-					self.logger.write("profiling warp based on max sub_core warp number")
+				self.logger.write("profiling warp based on max sub_core warp number")
 				tmp_warp_GCoM_output = self.process_GCoM(rptv_warp, interval_analysis_result, 
 												sub_core_warps_num, SM_warps_num, active_SMs, umem_hit_rate)
 				if tmp_warp_GCoM_output["GCoM"] > max_cycles_in_sub_core:

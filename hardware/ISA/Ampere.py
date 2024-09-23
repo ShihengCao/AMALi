@@ -31,7 +31,7 @@ units_latency = {
     "dTCU"              :  64,
 
     "BRA"               :  4,
-    "EXIT"              :  4,
+    # "EXIT"              :  4,
     #Memory Units Latencies
     "dram_mem_access"   :   290,
     "l1_cache_access"   :   33,
@@ -97,7 +97,7 @@ initial_interval = {
     # "fTCU"              :   32 / 1,
     # "dTCU"              :   32 / 1,
     "BRA"               :   32 / 1,
-    "EXIT"              :   32 / 16,
+    # "EXIT"              :   32 / 16,
 }
 sass_isa = {
 
@@ -229,7 +229,7 @@ sass_isa = {
     "BSSY"              : "BRA",
     "BSYNC"             : "BRA",
     "CALL"              : "BRA",
-    "EXIT"              : "iALU",
+    "EXIT"              : "BRA",
     "JMP"               : "BRA",
     "JMX"               : "BRA",
     "JMXU"              : "BRA",# new !!

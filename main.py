@@ -32,13 +32,13 @@ def usage():
    [MPI] For scalabilty, add mpirun call before program command:\nmpirun -np <number of processes>" )
 
 
-def get_current_kernel_info(kernel_id, app_name, app_path, app_config):
+def get_current_kernel_info(kernel_id, app_name, app_path, app_config, log):
 
     current_kernel_info = {}
 
     current_kernel_info["app_path"] = app_path
     current_kernel_info["kernel_id"] = kernel_id
-    current_kernel_info["log"] = True
+    current_kernel_info["log"] = log
     # current_kernel_info["method_name"] = method_name
     # current_kernel_info["granularity"] = granularity
 
@@ -126,14 +126,15 @@ def main():
 
     all_kernels = False
     useMPI = False
+    log = True
     kernel_id = -1
     kernels_info = []
     instructions_type = "SASS"
 
     full_cmd_arguments = sys.argv
     argument_list = full_cmd_arguments[1:]
-    short_options = "h:a:c:p:s:k"
-    long_options = ["help", "app=", "config=", "kernel=","useMPI="]
+    short_options = "h:a:c:k:um:l"
+    long_options = ["help", "app=", "config=", "kernel=","useMPI=", "log="]
 
     try:
         arguments, values = getopt.getopt(argument_list, short_options, long_options)
@@ -162,6 +163,8 @@ def main():
             kernel_id = current_value
         elif current_argument in ("-um", "--useMPI"):
             useMPI = True if current_value == '1' else False
+        elif current_argument in ("-l", "--log"):
+            log = True if current_value == '1' else False
 
     ######################
     ## specific kernel? ##
@@ -254,7 +257,7 @@ def main():
                 cur_id = int(file.split('_')[0])
                 app_kernels_id.remove(cur_id)
         for kernel_id in app_kernels_id:
-            kernels_info.append(get_current_kernel_info(str(kernel_id), app_name, app_path, app_config))
+            kernels_info.append(get_current_kernel_info(str(kernel_id), app_name, app_path, app_config, log))
     else:
         try:
             kernel_id
@@ -262,7 +265,7 @@ def main():
             print("\n[Error]\nmissing target kernel id")
             usage()
             sys.exit(1)
-        kernels_info.append(get_current_kernel_info(kernel_id, app_name, app_path, app_config))
+        kernels_info.append(get_current_kernel_info(kernel_id, app_name, app_path, app_config, log))
     
 
     ############################

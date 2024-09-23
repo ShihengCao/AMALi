@@ -105,8 +105,9 @@ def write_to_file(pred_out):
         f.write('!'.join([str(i) for i in list(pred_out.values())])+'\n')  
 
 class Logger():
-    def __init__(self, pred_out):
+    def __init__(self, pred_out, is_active=True):
         self.pred_out = pred_out
+        self.is_active = is_active
         # mkdir if target dir is not exist
         output_dir = os.path.join("..","logs")
         project_name = pred_out["app_path"].split("/")[-2]
@@ -120,6 +121,8 @@ class Logger():
     def __del__(self):
         self.f.close()
     def write(self, *args, **kwargs):
+        if not self.is_active:
+            return
         # 使用 args 和 kwargs 构建格式化字符串
         output = ' '.join(map(str, args))
         if kwargs.get('end') is not None:

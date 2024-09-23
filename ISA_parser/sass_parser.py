@@ -27,15 +27,14 @@ def parse(units_latency, sass_instructions, sass_path, logger):
     opcnt_dict["ST"] = 0
     opcnt_dict["LD"] = 0
 
-    insts_count = sass_instructions.copy()    
-    insts_count["ST"] = 0
-    insts_count["LD"] = 0
-    def flush_dict(input_dict:dict):
-        for key in input_dict:
-            input_dict[key] = 0
-    flush_dict(insts_count)
-
-    # print(len(sass_trace))        
+    # insts_count = sass_instructions.copy()    
+    # insts_count["ST"] = 0
+    # insts_count["LD"] = 0
+    # def flush_dict(input_dict:dict):
+    #     for key in input_dict:
+    #         input_dict[key] = 0
+    # flush_dict(insts_count)
+     
     for inst in sass_trace:
         inst_list = []
 
@@ -72,6 +71,7 @@ def parse(units_latency, sass_instructions, sass_path, logger):
         # else:
         #     warp_inst_count[warp_id] = 0
         
+        # create SM in warp_inst_count
         if sm_id in warp_inst_count:
             if warp_id in warp_inst_count[sm_id]:
                 warp_inst_count[sm_id][warp_id] += 1
@@ -160,8 +160,8 @@ def parse(units_latency, sass_instructions, sass_path, logger):
                     unit = sass_instructions[opcode]
                     latency = units_latency[unit]
                 
-                if "EXIT" in opcode:
-                    dependency_map[sm_id][warp_id] = {}
+                # if "EXIT" in opcode:
+                #     dependency_map[sm_id][warp_id] = {}
             except:
                 print(opcode)
                 print("\n[Error]\n"+"\""+current_inst+"\""+" is not available in SASS instructions table")
@@ -184,10 +184,12 @@ def parse(units_latency, sass_instructions, sass_path, logger):
                 destination = splitted_inst[i]
             else:
                 source = splitted_inst[i]
+                # check the source reigster used by the current instruction is already used by other instructions in the same warp or not
                 if source in dependency_map[sm_id][warp_id]:
                     inst_list.append(dependency_map[sm_id][warp_id][source])
 
         if destination is not None:
+            # store every register which is used by the current instruction to the dependency map
             dependency_map[sm_id][warp_id][destination] = warp_inst_count[sm_id][warp_id]
             
         #(3) commit the instruction list to the tasklist
@@ -198,40 +200,41 @@ def parse(units_latency, sass_instructions, sass_path, logger):
             task_list[sm_id] = {}
             task_list[sm_id][warp_id] = []
         task_list[sm_id][warp_id].append(inst_list)
-    if logger is not None:
 
-        sorted_opcnt = sorted(opcnt_dict.items(), key=lambda item: item[1], reverse=True)
-        for key, value in sorted_opcnt:
-            logger.write(key, value)
+    # logging
+    sorted_opcnt = sorted(opcnt_dict.items(), key=lambda item: item[1], reverse=True)
+    for key, value in sorted_opcnt:
+        logger.write(key, value)
 
-        logger.write("number of sm:",len(task_list))
-        task_len_cnt = {}
-        warp_num = 0
-        for sm in task_list:
-            warp_num += len(task_list[sm])
-            logger.write("sm info:","sm id:",sm, "warp number of this sm:",len(task_list[sm]))
-            for warp in task_list[sm]:
-                cur_warp_task_len = len(task_list[sm][warp])
+    logger.write("number of sm:",len(task_list))
+    task_len_cnt = {}
+    warp_num = 0
+    for sm in task_list:
+        warp_num += len(task_list[sm])
+        logger.write("sm info:","sm id:",sm, "warp number of this sm:",len(task_list[sm]))
+        for warp in task_list[sm]:
+            cur_warp_task_len = len(task_list[sm][warp])
 
-                logger.write("warp {:d} task_len: ".format(warp),cur_warp_task_len,end='; ')
+            logger.write("warp {:d} task_len: ".format(warp),cur_warp_task_len,end='; ')
 
-                if cur_warp_task_len not in task_len_cnt:
-                    task_len_cnt[cur_warp_task_len] = 1
+            if cur_warp_task_len not in task_len_cnt:
+                task_len_cnt[cur_warp_task_len] = 1
+            else:
+                task_len_cnt[cur_warp_task_len] += 1
+            instruction_streaming_cnt = 0
+            for task in task_list[sm][warp]:
+                if task[0] == "EXIT":
+                    logger.write(instruction_streaming_cnt + 1,end=' ')
+                    instruction_streaming_cnt = 0
                 else:
-                    task_len_cnt[cur_warp_task_len] += 1
-                instruction_streaming_cnt = 0
-                for task in task_list[sm][warp]:
-                    if task[0] == "EXIT":
-                        logger.write(instruction_streaming_cnt + 1,end=' ')
-                        instruction_streaming_cnt = 0
-                    else:
-                        instruction_streaming_cnt += 1
-                #logger.write(';',end=' ')
-            logger.write()
-        
-        logger.write("number of warp:",warp_num)
+                    instruction_streaming_cnt += 1
+            #logger.write(';',end=' ')
+        logger.write()
+    
+    logger.write("number of warp:",warp_num)
 
-        sorted_task_len_cnt = sorted(task_len_cnt.items(), key=lambda item: item[0], reverse=True)
-        for key, value in sorted_task_len_cnt:
-            logger.write("task len: {:d} number: {:d}".format(key,value))
+    sorted_task_len_cnt = sorted(task_len_cnt.items(), key=lambda item: item[0], reverse=True)
+    for key, value in sorted_task_len_cnt:
+        logger.write("task len: {:d} number: {:d}".format(key,value))
+    # end looging and return     
     return task_list, count_gmem_reqs
