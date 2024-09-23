@@ -3,7 +3,7 @@ import os, sys
 
 # Project Name format is project_name
 Project_name = sys.argv[1]
-workspace_path = os.path.join("..", "outputs")
+workspace_path = os.path.join("..", "GCoM_outputs")
 outputs_dir = os.path.join(workspace_path, Project_name)
 output_file = os.path.join(workspace_path, Project_name + ".csv")
 ground_truth_dir = os.path.join('.', "HW")
@@ -93,6 +93,5 @@ df = add_average_to_df(df, ground_truth_file)
 df.to_csv(output_file, index=False, sep=',')
 
 # Calculate and print the sums
-print(sum(df['GCoM+KLL+ID']),
-      sum(df['simulation_time_memory'] + df['simulation_time_compute'] + df['simulation_time_parse']),
-      "{:.4f}".format(sum(df['GCoM']) / sum(df['GCoM+KLL+ID'])))
+print(sum(df['GCoM']),
+      sum(df['simulation_time_memory'] + df['simulation_time_compute'] + df['simulation_time_parse']),)
