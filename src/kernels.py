@@ -453,8 +453,7 @@ class Kernel():
 				Returns:
 					issue_km: the issue_km of a SM
 			'''
-			issue_km = -100
-			max_unit = None
+			issue_km, max_unit = -100, None
 			num_act_sub_core = min(x, num_sub_cores_per_SM)
 			# we accumulate all sass excuted on Tensor core
 			tensor_core_iim = 0
@@ -495,8 +494,8 @@ class Kernel():
 			issue_k_m_var, unit = issue_k_m(x, fu, ik)
 			num_act_sub_core = min(x, num_sub_cores_per_SM)
 			# one memory instruction like LDSM.16.M88.4 R72, [R51+UR8+0x800] will load data to the R72 register file 
-			# to every thread which leads to 32bit * 32 / 8 = 128B L1 cache load
-			issue_k_L1_var = (bk * 4 * self.acc.l1_cache_line_size / B_L1_k) * x / (num_act_sub_core * issue_rate)
+			# to every thread which leads to 32bit * 32 / 8 = 128B L1 cache load, so 4 bytes per instruction
+			issue_k_L1_var = (bk * 4 * self.acc.l1_cache_line_size / B_L1_k) * x
 			# issue_k_L1_var = bk * kernel.acc.l1_cache_access_latency * x / (num_act_sub_core * issue_rate)
 			issue_k_L1_var = ceil(issue_k_L1_var, 1)
 			result = max(issue_base_var, issue_k_m_var, issue_k_L1_var)
@@ -504,7 +503,7 @@ class Kernel():
 			return result, is_mem, unit 
 		
 		def com_struct_and_mem_struct(x):
-			com, mem = 0, 0
+			result_cm = [0,0] # [com_struct, mem_struct]
 			all_struct_info = {}
 			for interval_info in interval_list:
 				if "issue_stage" not in interval_info:
@@ -514,24 +513,19 @@ class Kernel():
 				mem_acesss_num = interval_info["mem_access_num"]
 				issue_max_var, is_mem, unit = issue_max(x, ik, fu, mem_acesss_num)
 				issue_base_var = issue_base(x, ik)
-				if is_mem:
-					mem += issue_max_var - issue_base_var
-					interval_info["struct_info"] = {"type:":"L1 cache", "value": issue_max_var, "base": issue_base_var}
-					if "L1 cache" not in all_struct_info:
-						all_struct_info["L1 cache"] = issue_max_var - issue_base_var
-					else:
-						all_struct_info["L1 cache"] += issue_max_var - issue_base_var
+				ids = 1 if is_mem else 0
+				result_cm[ids] += issue_max_var - issue_base_var
+				interval_info_type = "L1 cache" if is_mem else unit
+				if interval_info_type not in all_struct_info:
+					all_struct_info[interval_info_type] = issue_max_var - issue_base_var
 				else:
-					com += issue_max_var - issue_base_var
-					interval_info["struct_info"] = {"type:":unit, "value": issue_max_var, "base": issue_base_var}
-					if unit not in all_struct_info:
-						all_struct_info[unit] = issue_max_var - issue_base_var
-					else:
-						all_struct_info[unit] += issue_max_var - issue_base_var
-			return com, mem, all_struct_info
+					all_struct_info[interval_info_type] += issue_max_var - issue_base_var
+			return result_cm, all_struct_info
 
-		com1, mem1, all_struct_info1 = com_struct_and_mem_struct(num_cncr_warps)
-		com2, mem2, all_struct_info2 = com_struct_and_mem_struct(warps_per_SM % num_cncr_warps)
+		result_cm1, all_struct_info1 = com_struct_and_mem_struct(num_cncr_warps)
+		com1, mem1 = result_cm1
+		result_cm2, all_struct_info2 = com_struct_and_mem_struct(warps_per_SM % num_cncr_warps)
+		com2, mem2 = result_cm2
 		S_ComStruct_i = com1 * (warps_per_SM // num_cncr_warps) + com2
 		S_MemStruct_i = mem1 * (warps_per_SM // num_cncr_warps) + mem2
 		if warps_per_SM // num_cncr_warps > 0:
