@@ -326,7 +326,11 @@ class Kernel():
 			rptv_warp_GCoM_output["C_idle_i_ID"] = 0
 		# add the kernel launch overhead to GCoM
 		rptv_warp_GCoM_output["Kernel_launch_latency"] = self.kernel_launch_latency
-		rptv_warp_GCoM_output["GCoM+KLL"] = rptv_warp_GCoM_output["GCoM"] + self.kernel_launch_latency
+		# we only add the kll to the result if the result is less than 30000
+		if rptv_warp_GCoM_output["GCoM"] > 30000:
+			rptv_warp_GCoM_output["GCoM+KLL"] = rptv_warp_GCoM_output["GCoM"]
+		else:
+			rptv_warp_GCoM_output["GCoM+KLL"] = rptv_warp_GCoM_output["GCoM"] + self.kernel_launch_latency
 		rptv_warp_GCoM_output["GCoM+ID"] = rptv_warp_GCoM_output["GCoM"] + rptv_warp_GCoM_output["C_idle_i_ID"] + rptv_warp_GCoM_output["C_idle_ij_ID"]
 		rptv_warp_GCoM_output["GCoM+KLL+ID"] = rptv_warp_GCoM_output["GCoM+ID"] + self.kernel_launch_latency + rptv_warp_GCoM_output["C_idle_i_ID"] + rptv_warp_GCoM_output["C_idle_ij_ID"] 
 		return rptv_warp_GCoM_output

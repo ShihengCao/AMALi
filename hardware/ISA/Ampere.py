@@ -82,10 +82,10 @@ initial_interval = {
     "hALU"              :   32 / 32,
     "dALU"              :   32 / 0.5,
 
-    "SFU"               :   32 / 1,
+    "SFU"               :   32 / 4,
     "dSFU"              :   32 / 1,
 
-    "LDST"              :   32 / 4,
+    "LDST"              :   32 / 32,
     # we will not use initial_interval for TCU for now
     # "bTCU"              :   64,
     "iTCU"              :   32 / 1,
@@ -96,7 +96,7 @@ initial_interval = {
     # "hTCU"              :   32 / 2,
     # "fTCU"              :   32 / 1,
     # "dTCU"              :   32 / 1,
-    "BRA"               :   32 / 1,
+    "BRA"               :   32 / 32,
     # "EXIT"              :   32 / 16,
 }
 sass_isa = {
