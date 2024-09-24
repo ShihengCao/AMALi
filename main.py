@@ -248,11 +248,11 @@ def main():
     app_kernels_id = app_config.app_kernels_id
     app_output_dir = app_name.split('/')[-2]
     # if ../outputs not exist then make it
-    if not os.path.exists("../outputs"):
-        os.makedirs("../outputs")
+    if not os.path.exists("../GCoM_outputs"):
+        os.makedirs("../GCoM_outputs")
     if all_kernels == True:    
-        if app_output_dir in os.listdir("../outputs"):
-            complete_files = os.listdir(os.path.join("../outputs",app_output_dir))
+        if app_output_dir in os.listdir("../GCoM_outputs"):
+            complete_files = os.listdir(os.path.join("../GCoM_outputs",app_output_dir))
             for file in complete_files:
                 cur_id = int(file.split('_')[0])
                 app_kernels_id.remove(cur_id)

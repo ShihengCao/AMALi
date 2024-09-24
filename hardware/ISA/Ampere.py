@@ -27,7 +27,7 @@ units_latency = {
     "fTCU"              :  32, # accumulator FP32
     "dTCU"              :  64,
 
-    "BRA"               :  4,
+    "BRA"               :  1,
     # "EXIT"              :  4,
     #Memory Units Latencies
     "dram_mem_access"   :   290,
@@ -54,11 +54,11 @@ initial_interval = {
     "dSFU"              :   32 / 1,
 
     "iTCU"              :   32 / 1,
-    "hTCU"              :   32 / 2,
-    "fTCU"              :   32 / 1,
+    "hTCU"              :   32 / 1, # accumulator FP16
+    "fTCU"              :   32 / 1, # accumulator FP32
     "dTCU"              :   32 / 1,
     
-    "BRA"               :   32 / 1,
+    "BRA"               :   32 / 32,
 }
 sass_isa = {
 
