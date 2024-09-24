@@ -96,3 +96,36 @@ df.to_csv(output_file, index=False, sep=',')
 print(sum(df['GCoM+KLL+ID']),
       sum(df['simulation_time_memory'] + df['simulation_time_compute'] + df['simulation_time_parse']),
       "{:.4f}".format(sum(df['GCoM']) / sum(df['GCoM+KLL+ID'])))
+
+# 读取两个 CSV 文件
+file_10_m = ground_truth_file
+file_fp16 = output_file
+
+df_10_m = pd.read_csv(file_10_m)
+df_fp16 = pd.read_csv(file_fp16)
+
+# 创建一个空的 DataFrame，用于存储最终的匹配数据
+merged_df = df_10_m.copy()
+
+# 定义要添加的列
+columns_to_add = ['GCoM', 'GCoM+KLL']#, 'GCoM+ID', 'GCoM+KLL+ID']
+
+# 初始化这些列为 NaN
+for col in columns_to_add:
+    merged_df[col] = pd.NA
+
+# 遍历 df_10_m 中的每一行
+for idx, row in df_10_m.iterrows():
+    kernel_name = row['Kernel Name']
+    avg_value = row['Average']
+    #print(row["similar_kernel_ids"])
+    #print(df_fp16['kernel_id'])
+    closest_row_data = df_fp16[df_fp16['kernel_id'] == int(row["similar_kernel_ids"])]
+    #print(closest_row_data)
+    for col in columns_to_add:
+        #print(closest_row_data[col])
+        merged_df.at[idx, col] = float(closest_row_data[col])        
+
+
+# 保存合并后的文件
+merged_df.to_csv(os.path.join(workspace_path, Project_name + "_extracted.csv"), index=False)
