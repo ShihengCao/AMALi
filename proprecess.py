@@ -107,7 +107,7 @@ df_fp16 = pd.read_csv(file_fp16)
 merged_df = df_10_m.copy()
 
 # 定义要添加的列
-columns_to_add = ['GCoM', 'GCoM+KLL']#, 'GCoM+ID', 'GCoM+KLL+ID']
+columns_to_add = ['GCoM']
 
 # 初始化这些列为 NaN
 for col in columns_to_add:

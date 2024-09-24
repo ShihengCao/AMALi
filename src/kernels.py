@@ -463,7 +463,7 @@ class Kernel():
 			num_act_sub_core = min(x, num_sub_cores_per_SM)
 			# one memory instruction like LDSM.16.M88.4 R72, [R51+UR8+0x800] will load data to the R72 register file 
 			# to every thread which leads to 32bit * 32 / 8 = 128B L1 cache load
-			issue_k_L1_var = (bk * 4 * self.acc.l1_cache_line_size / B_L1_k) * x / (num_act_sub_core * issue_rate)
+			issue_k_L1_var = (bk * 4 * self.acc.l1_cache_line_size / B_L1_k) * x
 			# issue_k_L1_var = bk * kernel.acc.l1_cache_access_latency * x / (num_act_sub_core * issue_rate)
 			issue_k_L1_var = ceil(issue_k_L1_var, 1)
 			result = max(issue_base_var, issue_k_m_var, issue_k_L1_var)
