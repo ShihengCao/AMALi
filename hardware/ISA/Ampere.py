@@ -51,7 +51,7 @@ initial_interval = {
     "dALU"              :   32 / 0.5,
 
     "SFU"               :   32 / 4,
-    "dSFU"              :   32 / 1,
+    "dSFU"              :   32 / 4,
 
     "iTCU"              :   32 / 1,
     "hTCU"              :   32 / 1, # accumulator FP16
