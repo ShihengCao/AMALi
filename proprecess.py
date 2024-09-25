@@ -128,3 +128,32 @@ for idx, row in df_10_m.iterrows():
 
 # 保存合并后的文件
 merged_df.to_csv(os.path.join(workspace_path, Project_name + "_extracted.csv"), index=False)
+
+# 按照 'similar_kernel_ids' 列分组，计算每组 'Average' 的总和
+grouped_sum = df_10_m.groupby('similar_kernel_ids')['Average'].sum().reset_index()
+
+# 按照 'Average' 的总和进行降序排序
+sorted_groups = grouped_sum.sort_values(by='Average', ascending=False)
+
+# 计算总的 Average 和
+total_average_sum = sorted_groups['Average'].sum()
+
+# 累加到总和的90%
+cumulative_sum = 0
+threshold = total_average_sum * 0.9
+selected_ids = []
+
+for idx, row in sorted_groups.iterrows():
+    cumulative_sum += row['Average']
+    selected_ids.append(int(row['similar_kernel_ids']))  # 转换为整数
+    if cumulative_sum >= threshold:
+        break
+
+# 筛选 df_fp16 中的行，kernel_id 转为整数进行比较
+filtered_df = df_fp16[df_fp16['kernel_id'].isin(map(int, selected_ids))]
+
+# 保存到 CSV 文件
+output_path = os.path.join(workspace_path, Project_name + "_selected.csv")
+filtered_df.to_csv(output_path, index=False)
+
+print(f"Selected rows saved to {output_path}")
