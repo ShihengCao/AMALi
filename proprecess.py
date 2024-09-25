@@ -158,3 +158,22 @@ output_path = os.path.join(workspace_path, Project_name + "_selected.csv")
 filtered_df.to_csv(output_path, index=False)
 
 print(f"Selected rows saved to {output_path}")
+
+import numpy as np
+# 计算 MAPE 的函数
+def mean_absolute_percentage_error(y_true, y_pred):
+    y_true, y_pred = np.array(y_true), np.array(y_pred)
+    return np.mean(np.abs((y_true - y_pred) / (y_true + 1e-5))) * 100
+
+# 获取 Ground_Truth_Average 列作为真实值
+y_true = filtered_df['Ground_Truth_Average']
+
+# 计算每一列与 Ground_Truth_Average 之间的 MAPE
+mape_gcom = mean_absolute_percentage_error(y_true, filtered_df['GCoM'])
+mape_gcom_kll = mean_absolute_percentage_error(y_true, filtered_df['GCoM+KLL'])
+mape_gcom_kll_id = mean_absolute_percentage_error(y_true, filtered_df['GCoM+KLL+ID'])
+
+# 打印结果
+print(f'MAPE of GCoM: {mape_gcom:.2f}%')
+print(f'MAPE of GCoM+KLL: {mape_gcom_kll:.2f}%')
+print(f'MAPE of GCoM+KLL+ID: {mape_gcom_kll_id:.2f}%')
