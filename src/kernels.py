@@ -283,6 +283,7 @@ class Kernel():
 						pred_out["warps_instructions_executed"] = rptv_warp.current_inst * total_warp_num # used in calculating ipc
 
 						self.logger.write("profiling rtpv warp")
+						self.logger.write(len(rptv_warp.tasklist))
 						self.logger.write("args:",
 							"sub_core_warps_num:",sub_core_warps_num, 
 							"cur_SM_warps_num:",cur_SM_warps_num, 
