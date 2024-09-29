@@ -33,10 +33,12 @@ def rptv_warp_select(kmeans_features):
     kmeans_features = np.array(kmeans_features)
     # calculate the avg of kmeans_features in every column
     kmeans_features_avg = np.mean(kmeans_features, axis = 0)
-    # divide corresponding feature avg in every column
+    # # divide corresponding feature avg in every column
     for feature in kmeans_features:
-        feature[0] /= kmeans_features_avg[0]
-        feature[1] /= kmeans_features_avg[1]
+        for i in range(len(feature)):
+            if feature[i] == 0:
+                continue
+            feature[i] /= kmeans_features_avg[i]
     # do kmeans algorithm
     n_clusters = min(4, len(kmeans_features))
     kmeans = KMeans(n_clusters = n_clusters,

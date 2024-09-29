@@ -13,7 +13,9 @@
 # Copyright: Open source, must acknowledge original author
 
 ##############################################################################
-from src.utils import uniform_insts_list
+from src.utils import uniform_insts_list, functional_units_list, rptv_warp_select
+from collections import Counter
+import numpy as np
 
 def parse(units_latency, sass_instructions, sass_path, logger):
     
@@ -154,9 +156,9 @@ def parse(units_latency, sass_instructions, sass_path, logger):
                 print(opcode)
                 print("\n[Error]\n"+"\""+current_inst+"\""+" is not available in SASS instructions table")
                 exit(0)
-            # add the instruction HW unit to the warp tasklist
+            # add the instruction HW unit to the warp task_list
             inst_list.append(unit)
-            # add the instruction latency to the warp tasklist
+            # add the instruction latency to the warp task_list
             inst_list.append(latency)
         #(2) add current instruction dependencies
         destination = None      
@@ -180,7 +182,7 @@ def parse(units_latency, sass_instructions, sass_path, logger):
             # store every register which is used by the current instruction to the dependency map
             dependency_map[sm_id][warp_id][destination] = warp_inst_count[sm_id][warp_id]
             
-        #(3) commit the instruction list to the tasklist
+        #(3) commit the instruction list to the task_list
         if sm_id in task_list:
             if warp_id not in task_list[sm_id]:
                 task_list[sm_id][warp_id] = []
@@ -225,4 +227,45 @@ def parse(units_latency, sass_instructions, sass_path, logger):
     for key, value in sorted_task_len_cnt:
         logger.write("task len: {:d} number: {:d}".format(key,value))
     # end looging and return     
-    return task_list, count_gmem_reqs
+    def transform_task_list(task_list, functional_units_list):
+        flattened_warps = []
+        warp_info = []  # 用于存储每个warp的sm_id和warp_id
+        
+        for sm_id in sorted(task_list.keys()):
+            for warp_id in sorted(task_list[sm_id].keys()):
+                warp_vector = task_list[sm_id][warp_id]
+                
+                # 统计每个functional unit的出现次数
+                unit_counter = Counter(item[0] for item in warp_vector if item)
+                
+                # 创建一个与functional_units_list对应的向量
+                count_vector = [unit_counter.get(unit, 0) for unit in functional_units_list]
+                
+                # 计算总指令数
+                total_instructions = sum(count_vector)
+                
+                # # 如果总指令数为0，我们将所有值设为0以避免除以0
+                # if total_instructions == 0:
+                #     normalized_vector = [0] * len(functional_units_list)
+                # else:
+                #     # 归一化处理，计算每种指令的占比
+                #     normalized_vector = [count / total_instructions for count in count_vector]
+                
+                flattened_warps.append(count_vector)
+                warp_info.append((sm_id, warp_id))
+        
+        return np.array(flattened_warps), warp_info
+
+    # 假设task_list已经定义
+    kmeans_features, warp_info = transform_task_list(task_list, functional_units_list)
+    # print(kmeans_features)
+    all_center_warp_idx_list, representative_index = rptv_warp_select(kmeans_features)
+    print("all_center_warp_idx and represetative warp index")
+    print(all_center_warp_idx_list, representative_index)
+    # 根据representative_index找出对应的sm_id和warp_id
+    def get_sm_and_warp_id(representative_index, warp_info):
+        return warp_info[representative_index]
+    # print(warp_info,r)
+    sm_warp_pairs = get_sm_and_warp_id(representative_index, warp_info)
+    print(len(task_list[sm_warp_pairs[0]][sm_warp_pairs[1]]))
+    return task_list, count_gmem_reqs, sm_warp_pairs

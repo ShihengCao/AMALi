@@ -157,3 +157,106 @@ output_path = os.path.join(workspace_path, Project_name + "_selected.csv")
 filtered_df.to_csv(output_path, index=False)
 
 print(f"Selected rows saved to {output_path}")
+
+'''
+kernel 映射
+'''
+import os
+
+def select_kernels_and_save(df_10_m, df_fp16, workspace_path, Project_name, threshold = 0.9):
+    # 按照 'similar_kernel_ids' 列分组，计算每组 'Average' 的总和
+    grouped_sum = df_10_m.groupby('similar_kernel_ids')['Average'].sum().reset_index()
+
+    # 按照 'Average' 的总和进行降序排序
+    sorted_groups = grouped_sum.sort_values(by='Average', ascending=False)
+
+    # 计算总的 Average 和
+    total_average_sum = sorted_groups['Average'].sum()
+
+    # 累加到总和的90%
+    cumulative_sum = 0
+    threshold = total_average_sum * threshold
+    selected_ids = []
+
+    for idx, row in sorted_groups.iterrows():
+        cumulative_sum += row['Average']
+        selected_ids.append(int(row['similar_kernel_ids']))  # 转换为整数
+        if cumulative_sum >= threshold:
+            break
+
+    # 筛选 df_fp16 中的行，kernel_id 转为整数进行比较
+    filtered_df = df_fp16[df_fp16['kernel_id'].isin(map(int, selected_ids))]
+
+    # 保存到 CSV 文件
+    output_path = os.path.join(workspace_path, f"{Project_name}_selected.csv")
+    filtered_df.to_csv(output_path, index=False)
+    print(f"Selected kernels saved to: {output_path}")
+    return filtered_df
+
+# 使用这个函数时，你需要提供正确的参数：
+# select_kernels_and_save(df_10_m, df_fp16, '/path/to/workspace', 'YourProjectName')
+def split_dataframe(df, row_index):
+    """
+    将给定的 DataFrame 在指定行索引处分割成两个 DataFrame。
+    
+    参数:
+        df (pd.DataFrame): 要分割的原始 DataFrame。
+        row_index (int): 分割点的行索引（从0开始）。
+        
+    返回:
+        tuple: 包含两个 DataFrame 的元组，第一个是从开始到分割点（包括），第二个是从分割点后一个位置到最后。
+    """
+    # 确保行索引在有效范围内
+    if row_index < 0 or row_index >= len(df):
+        raise ValueError("row_index 必须在 DataFrame 的有效行索引范围内。")
+
+    # 分割 DataFrame
+    df_first = df.iloc[:row_index+1]  # 包括第 row_index 行
+    df_second = df.iloc[row_index+1:]  # 从第 row_index+1 行开始
+    
+    return df_first, df_second
+
+# 假设 df_10_m 是你的原始 DataFrame
+# 使用函数来分割 DataFrame
+df_10_m_first, df_10_m_second = split_dataframe(df_10_m, 1359)  # 注意：因为是基于0的索引，所以这里使用1359代表第1360行
+
+filtered_df_first = select_kernels_and_save(df_10_m_first, df_fp16, workspace_path, Project_name+"_first")
+filtered_df_second = select_kernels_and_save(df_10_m_second, df_fp16, workspace_path, Project_name+"_second", threshold=0.8)
+
+'''
+    计算MAPE
+'''
+
+import numpy as np
+# 计算 MAPE 的函数
+
+def mean_absolute_percentage_error(y_true, y_pred):
+    y_true, y_pred = np.array(y_true), np.array(y_pred)
+    return np.mean(np.abs((y_true - y_pred) / (y_true + 1e-5))) * 100
+
+# 获取 Ground_Truth_Average 列作为真实值
+y_true_first = filtered_df_first['Ground_Truth_Average']
+y_true_second = filtered_df_second['Ground_Truth_Average']
+
+# 计算每一列与 Ground_Truth_Average 之间的 MAPE for first part
+mape_gcom_first = mean_absolute_percentage_error(y_true_first, filtered_df_first['GCoM'])
+# 打印结果 for first part
+print(f'First Part - MAPE of GCoM: {mape_gcom_first:.2f}%')
+
+# 计算每一列与 Ground_Truth_Average 之间的 MAPE for second part
+mape_gcom_second = mean_absolute_percentage_error(y_true_second, filtered_df_second['GCoM'])
+
+# 打印结果 for second part
+print(f'Second Part - MAPE of GCoM: {mape_gcom_second:.2f}%')
+
+# 拼接两个 DataFrame
+combined_df = pd.concat([filtered_df_first, filtered_df_second])
+
+# 获取拼接后 DataFrame 中的 Ground_Truth_Average 列作为真实值
+y_true_combined = combined_df['Ground_Truth_Average']
+
+# 计算每一列与 Ground_Truth_Average 之间的 MAPE for the combined DataFrame
+mape_gcom_combined = mean_absolute_percentage_error(y_true_combined, combined_df['GCoM'])
+
+# 打印结果 for the combined DataFrame
+print(f'Combined - MAPE of GCoM: {mape_gcom_combined:.2f}%')

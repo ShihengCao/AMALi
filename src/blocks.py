@@ -21,12 +21,12 @@ class Block(object):
     '''
         class that represents a block (CTA) being executed on an SM
     '''
-    def __init__(self, gpu, id, sub_core_id, tasklist, kernel_id, isa, avg_mem_lat, avg_atom_lat):
+    def __init__(self, gpu, SM_id, sub_core_id, tasklist, kernel_id, isa, avg_mem_lat, avg_atom_lat):
         # self.num_warps = num_warps 
         self.num_active_warps = 0
         self.sync_warps = 0
         # SM id cause we only spawn one thread block on each SM
-        self.id = id
+        self.id = SM_id
         # sub-core id
         self.sub_core_id = sub_core_id
         self.active = False
@@ -36,5 +36,5 @@ class Block(object):
         
         if isa == "SASS":
             # Here: len(self.kernel_tasklist) <= self.num_warps
-            for warp in tasklist:
-                self.warp_list.append(Warp(self, gpu, tasklist[warp], kernel_id, id, warp, avg_mem_lat, avg_atom_lat))
+            for warp_id in tasklist:
+                self.warp_list.append(Warp(self, gpu, tasklist[warp_id], kernel_id, SM_id, warp_id, avg_mem_lat, avg_atom_lat))

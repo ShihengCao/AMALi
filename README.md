@@ -10,6 +10,7 @@ python main.py --app ../RTX3090_apps/mini-Llama2/ --config RTX3090 --useMPI 0 --
 # run with mpi
 PATH=/home/caosh/mpich-install/bin:$PATH ; export PATH
 mpiexec -n 3 python main.py --app ../RTX3090_apps/Llama2-4096-32-130-fp16/ --config RTX3090 --kernel 13
+python main.py --app ../RTX3090_apps/Llama2-4096-32-258-fp16/ --config RTX3090 --kernel 71
 # run proprecessing
 python proprecess.py Llama2-4096-32-130-fp16_
 python proprecess.py Llama2-4096-32-130-fp16_NTM
