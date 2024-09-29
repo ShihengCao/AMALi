@@ -242,15 +242,15 @@ def parse(units_latency, sass_instructions, sass_path, logger):
                 count_vector = [unit_counter.get(unit, 0) for unit in functional_units_list]
                 
                 # 计算总指令数
-                total_instructions = sum(count_vector)
+                # total_instructions = sum(count_vector)
                 
-                # # 如果总指令数为0，我们将所有值设为0以避免除以0
+                # 如果总指令数为0，我们将所有值设为0以避免除以0
                 # if total_instructions == 0:
                 #     normalized_vector = [0] * len(functional_units_list)
                 # else:
                 #     # 归一化处理，计算每种指令的占比
                 #     normalized_vector = [count / total_instructions for count in count_vector]
-                
+                # flattened_warps.append(normalized_vector)
                 flattened_warps.append(count_vector)
                 warp_info.append((sm_id, warp_id))
         
@@ -267,5 +267,6 @@ def parse(units_latency, sass_instructions, sass_path, logger):
         return warp_info[representative_index]
     # print(warp_info,r)
     sm_warp_pairs = get_sm_and_warp_id(representative_index, warp_info)
+    print(f"Representative warp - SM ID: {sm_warp_pairs[0]}, Warp ID: {sm_warp_pairs[1]}")
     print(len(task_list[sm_warp_pairs[0]][sm_warp_pairs[1]]))
     return task_list, count_gmem_reqs, sm_warp_pairs

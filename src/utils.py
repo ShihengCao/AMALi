@@ -30,15 +30,15 @@ def rptv_warp_select(kmeans_features):
             all_center_warp_list: a list of warps idx closest to the kmeans cluster center 
             represetative_index: int, index of the represetative warp
     '''
-    kmeans_features = np.array(kmeans_features)
+    # kmeans_features = np.array(kmeans_features)
     # calculate the avg of kmeans_features in every column
     kmeans_features_avg = np.mean(kmeans_features, axis = 0)
     # # divide corresponding feature avg in every column
-    for feature in kmeans_features:
-        for i in range(len(feature)):
-            if feature[i] == 0:
-                continue
-            feature[i] /= kmeans_features_avg[i]
+    # for feature in kmeans_features:
+    #     for i in range(len(feature)):
+    #         if feature[i] == 0:
+    #             continue
+    #         feature[i] /= kmeans_features_avg[i]
     # do kmeans algorithm
     n_clusters = min(4, len(kmeans_features))
     kmeans = KMeans(n_clusters = n_clusters,
@@ -50,13 +50,14 @@ def rptv_warp_select(kmeans_features):
             count_cluster[i] = 1
         else:
             count_cluster[i] += 1
-    #print(count_cluster)
     # find the largest cluster
-    max_num, max_index = -1, -1
-    for key in count_cluster:
-        if count_cluster[key] > max_num:
-            max_num = count_cluster[key]
-            max_index = key
+    # max_num, max_index = -1, -1
+    # for key in count_cluster:
+    #     if count_cluster[key] > max_num:
+    #         max_num = count_cluster[key]
+    #         max_index = key
+    max_index = max(count_cluster, key=count_cluster.get)
+    max_num = count_cluster[max_index]
     # calculate the representive warp which is the nearest warp to the largest cluster center
     min_dist = 1e9
     rptv_index = 0
