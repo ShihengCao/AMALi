@@ -109,7 +109,7 @@ class Kernel():
 		tic = time.time()
 
 		sass_parser = importlib.import_module("ISA_parser.sass_parser")
-		self.kernel_tasklist, gmem_reqs = sass_parser.parse(units_latency = self.acc.units_latency, sass_instructions = self.acc.sass_isa,\
+		self.kernel_tasklist, gmem_reqs, represetative_sm_warp_pair = sass_parser.parse(units_latency = self.acc.units_latency, sass_instructions = self.acc.sass_isa,\
 															sass_path = self.sass_file_path, logger = self.logger)
 		toc = time.time()
 		pred_out["simulation_time_parse"] = (toc - tic)
@@ -196,22 +196,24 @@ class Kernel():
 			for sub_core in sub_core_list_in_SM:
 				max_warp_per_sub_core = max(max_warp_per_sub_core, len(sub_core.warp_list))
 			SM_block_list.append(sub_core_list_in_SM)
-		'''
-			select the representive warps and count warp num
-			use Kmeans algorithm
-		'''
-		kmeans_features = []
-		for SM in SM_block_list:
-			for sub_core_block in SM:
-				for warp in sub_core_block.warp_list:
-					_, total_cycles, _ = warp.interval_analyze()
-					warp_total_inst = warp.current_inst
-					kmeans_features.append([warp_total_inst / total_cycles, warp_total_inst])
-		all_center_warp_idx_list, represetative_index = rptv_warp_select(kmeans_features)
+		# '''
+		# 	select the representive warps and count warp num
+		# 	use Kmeans algorithm
+		# '''
+		# kmeans_features = []
+		# warp_info = []
+		# for SM in SM_block_list:
+		# 	for sub_core_block in SM:
+		# 		for warp in sub_core_block.warp_list:
+		# 			_, total_cycles, _ = warp.interval_analyze()
+		# 			warp_total_inst = warp.current_inst
+		# 			kmeans_features.append([warp_total_inst / total_cycles, warp_total_inst])
+		# 			warp_info.append((sub_core_block.id, warp.id))
+		# all_center_warp_idx_list, represetative_index = rptv_warp_select(kmeans_features)
 
-		
+		# represetative_sm_warp_pair = warp_info[represetative_index]
 		rptv_warp_GCoM_output = self.calculate_GCoM(SM_block_list, 
-								total_warp_num, represetative_index,
+								total_warp_num, represetative_sm_warp_pair,
 								pred_out,
 								max_warp_per_sub_core, max_warp_per_SM,)
 		# calculate the simulation time
@@ -224,8 +226,8 @@ class Kernel():
 		# write output to file
 		write_to_file(pred_out)
 		# logging
-		self.logger.write("all_center_warp_idx and represetative warp index")
-		self.logger.write(all_center_warp_idx_list, represetative_index)
+		# self.logger.write("all_center_warp_idx and represetative warp index")
+		# self.logger.write(all_center_warp_idx_list, represetative_index)
 		self.logger.write("pred_out:")
 		self.logger.write(pred_out)
 		self.logger.write("rptv_warp_GCoM_output:")
@@ -251,7 +253,7 @@ class Kernel():
 						   new_tasklists[i], kernel_id, isa, avg_mem_lat, avg_atom_lat))		
 		return block_list
 	def calculate_GCoM(self, SM_block_list:list, 
-								total_warp_num:int, represetative_index:int,
+								total_warp_num:int, represetative_sm_warp_pair:tuple,
 								pred_out:dict,
 								max_warp_per_sub_core:int, max_warp_per_SM:int,):
 		# find the represetative warp based on the represetative index
@@ -275,7 +277,7 @@ class Kernel():
 						inst_cnt += len(tmp_warp.tasklist)					
 					max_sub_core_instr = max(max_sub_core_instr, inst_cnt)
 
-					if tmp_idx == represetative_index:
+					if cur_sub_core.id == represetative_sm_warp_pair[0] and cur_warp.id == represetative_sm_warp_pair[1]:
 						rptv_warp = cur_warp
 						# get the rptv_warp and process GCoM
 						sub_core_warps_num = len(cur_sub_core.warp_list)
