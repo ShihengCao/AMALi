@@ -426,7 +426,7 @@ class Kernel():
 					else:
 						short_scoreboard += stage_info["stall_stage"]
 		# calculate C_active_ij and C_idle_ij
-		C_active_ij = selected + wait + long_scoreboard + short_scoreboard
+		C_active_ij = selected + wait + long_scoreboard + short_scoreboard + drain
 		C_idle_ij = 0 # we will calculate it later in kernel
 		C_ij = C_active_ij + C_idle_ij
 
@@ -435,7 +435,7 @@ class Kernel():
 		'''
 		Si = 0
 		math_pipe_throttle = 0
-		S_MemStruct_i = 0
+		tex_throttle = 0
 		'''		
 			GCoM claim: num_cncr_warps is the maximum number of warps that an SM can concurrently execute
 
@@ -549,7 +549,7 @@ class Kernel():
 		result_cm2, all_struct_info2 = com_struct_and_mem_struct(warps_per_SM % num_cncr_warps)
 		com2, mem2 = result_cm2
 		math_pipe_throttle = com1 * (warps_per_SM // num_cncr_warps) + com2
-		S_MemStruct_i = mem1 * (warps_per_SM // num_cncr_warps) + mem2
+		tex_throttle = mem1 * (warps_per_SM // num_cncr_warps) + mem2
 		if warps_per_SM // num_cncr_warps > 0:
 			self.logger.write(all_struct_info1)
 		if warps_per_SM % num_cncr_warps > 0:
@@ -562,14 +562,15 @@ class Kernel():
 		S_NoC_i = int(MDM_output["NoC"])
 		S_Dram_i = int(MDM_output["Dram"])
 		
-		Si = math_pipe_throttle + S_MemStruct_i + S_MSHR_i + S_NoC_i + S_Dram_i
+		mio_throttle = S_MSHR_i + S_NoC_i + S_Dram_i
+		Si = math_pipe_throttle + tex_throttle + mio_throttle
 		C_active_i = C_ij + Si
 
 		C_idle_i = 0 # we will calculate it later in kernel
 		C = int(C_active_i + C_idle_i)
 		
 		general_GCoM_output = {
-			"GCoM": C,
+			"warp_state_stall_stack": C,
 			"selected": selected,
 			"wait": wait,
 			"long_scoreboard": long_scoreboard,
@@ -577,7 +578,8 @@ class Kernel():
 			"C_idle_ij_orig": C_idle_ij,
 			"C_idle_ij_ID": 0,
 			"math_pipe_throttle": math_pipe_throttle,
-			"S_MemStruct_i": S_MemStruct_i,
+			"tex_throttle": tex_throttle,
+			"mio_throttle": mio_throttle,
 			"S_MSHR_i": S_MSHR_i,
 			"S_NoC_i": S_NoC_i,
 			"S_Dram_i": S_Dram_i,			
