@@ -328,7 +328,7 @@ class Kernel():
 		else:
 			rptv_warp_GCoM_output["C_idle_i_ID"] = 0
 		# add the kernel launch overhead to GCoM
-		rptv_warp_GCoM_output["Kernel_launch_latency"] = self.kernel_launch_latency
+		rptv_warp_GCoM_output["no_instructions_and_imc_miss"] = self.kernel_launch_latency
 		# we only add the kll to the result if the result is less than 30000
 		if rptv_warp_GCoM_output["GCoM"] > 30000:
 			rptv_warp_GCoM_output["GCoM+KLL"] = rptv_warp_GCoM_output["GCoM"]
@@ -359,8 +359,10 @@ class Kernel():
 				wait: Warp was stalled waiting on a fixed latency execution dependency.
 				math_pipe_throttle: Warp was stalled waiting for the execution pipe to be available.
 				long_scoreboard: Warp was stalled waiting for a scoreboard dependency on a L1TEX (local, global, surface, texture) operation.
-				short_scoreboard: Warp was stalled waiting for a scoreboard dependency on a MIO (memory input/output) operation (not to L1TEX). Share memory
+				short_scoreboard: Warp was stalled waiting for a scoreboard dependency on a lg (memory input/output) operation (not to L1TEX). Share memory
 				drain: Warp was stalled after EXIT waiting for all outstanding memory operations to complete so that warp’s resources can be freed.
+				tex_throttle: Warp was stalled waiting for the L1 instruction queue for texture operations to be not full.(e.g. XU/MUFU, ADU) 
+				lg_throttle: Warp was stalled waiting for the L1 instruction queue for local and global (LG) memory operations to be not full.
 
 				
 		'''
@@ -562,8 +564,8 @@ class Kernel():
 		S_NoC_i = int(MDM_output["NoC"])
 		S_Dram_i = int(MDM_output["Dram"])
 		
-		mio_throttle = S_MSHR_i + S_NoC_i + S_Dram_i
-		Si = math_pipe_throttle + tex_throttle + mio_throttle
+		lg_throttle = S_MSHR_i + S_NoC_i + S_Dram_i
+		Si = math_pipe_throttle + tex_throttle + lg_throttle
 		C_active_i = C_ij + Si
 
 		C_idle_i = 0 # we will calculate it later in kernel
@@ -579,7 +581,7 @@ class Kernel():
 			"C_idle_ij_ID": 0,
 			"math_pipe_throttle": math_pipe_throttle,
 			"tex_throttle": tex_throttle,
-			"mio_throttle": mio_throttle,
+			"lg_throttle": lg_throttle,
 			"S_MSHR_i": S_MSHR_i,
 			"S_NoC_i": S_NoC_i,
 			"S_Dram_i": S_Dram_i,			
