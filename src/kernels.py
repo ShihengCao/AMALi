@@ -323,8 +323,8 @@ class Kernel():
 
 		# update C_idle_i
 		# backup the max cycle depends on warp number divergence
-		if max_sub_core_instr > rptv_warp_GCoM_output["C_base_ij"]:
-			rptv_warp_GCoM_output["C_idle_i_ID"] = max_sub_core_instr - rptv_warp_GCoM_output["C_base_ij"]
+		if max_sub_core_instr > rptv_warp_GCoM_output["selected"]:
+			rptv_warp_GCoM_output["C_idle_i_ID"] = max_sub_core_instr - rptv_warp_GCoM_output["selected"]
 		else:
 			rptv_warp_GCoM_output["C_idle_i_ID"] = 0
 		# add the kernel launch overhead to GCoM
@@ -354,6 +354,15 @@ class Kernel():
 				umem_hit_rate: the hit rate of the memory
 			Returns:
 				general_output_GCoM: the GCoM of the warp
+				
+				selected: Warp was selected by the micro scheduler and issued an instruction.
+				wait: Warp was stalled waiting on a fixed latency execution dependency.
+				math_pipe_throttle: Warp was stalled waiting for the execution pipe to be available.
+				long_scoreboard: Warp was stalled waiting for a scoreboard dependency on a L1TEX (local, global, surface, texture) operation.
+				short_scoreboard: Warp was stalled waiting for a scoreboard dependency on a MIO (memory input/output) operation (not to L1TEX). Share memory
+				drain: Warp was stalled after EXIT waiting for all outstanding memory operations to complete so that warp’s resources can be freed.
+
+				
 		'''
 		'''
 			model sub-core
@@ -368,46 +377,56 @@ class Kernel():
 		issue_rate = 1 # 1 instruction is issued per cycle
 		num_warp_inst = warp.current_inst
 		total_num_warp_inst = num_warp_inst * warps_ij	
-		# calculate C_base_ij
-		C_base_ij = total_num_warp_inst / issue_rate 
+		# calculate selected
+		selected = total_num_warp_inst / issue_rate 
 		actual_end = max(warp.completions)		
-		C_base_ij += actual_end - total_cycles
-		# initialize S_ComData_ij and S_MemData_ij
-		S_ComData_ij = 0
-		S_MemData_ij = 0
+		drain = actual_end - total_cycles
+		# initialize wait and long_scoreboard
+		wait = 0
+		long_scoreboard = 0
+		short_scoreboard = 0
 		# according to GPUMech, the probability of issuing an instruction
 		P_inst = num_warp_inst / total_cycles
-		# calculate S_ComData_ij and S_MemData_ij
-		if self.acc.warp_scheduling_policy == "GTO":		
-			'''
-				Use GTO warp schedule policy
-			'''
-			avg_int_insts = (num_warp_inst / total_intervals)
-			for stage_info in interval_list:
-				if "stall_stage" in stage_info:
-					S_intv_k = stage_info["stall_stage"]
-					P_warp = min(S_intv_k * P_inst, 1)
-					cycle_other = int(P_warp* (warps_ij - 1) * avg_int_insts / issue_rate)
-					if stage_info["stall_type"] == 2:
-						S_ComData_ij += max(int(S_intv_k - cycle_other), 0) 
+		# calculate wait and long_scoreboard
+		# if self.acc.warp_scheduling_policy == "GTO":		
+		# 	'''
+		# 		Use GTO warp schedule policy
+		# 	'''
+		# 	avg_int_insts = (num_warp_inst / total_intervals)
+		# 	for stage_info in interval_list:
+		# 		if "stall_stage" in stage_info:
+		# 			S_intv_k = stage_info["stall_stage"]
+		# 			P_warp = min(S_intv_k * P_inst, 1)
+		# 			cycle_other = int(P_warp* (warps_ij - 1) * avg_int_insts / issue_rate)
+		# 			if stage_info["stall_type"] == 2:
+		# 				wait += max(int(S_intv_k - cycle_other), 0) 
+		# 			else:
+		# 				long_scoreboard += max(int(S_intv_k - cycle_other), 0)
+		# elif self.acc.warp_scheduling_policy == "LRR":  
+		# 	'''
+		# 		Use LRR warp schedule policy
+		# 	'''
+		# 	for stage_info in interval_list:
+		# 		if "stall_stage" in stage_info:
+		# 			S_intv_k = stage_info["stall_stage"]
+		# 			if stage_info["stall_type"] == 2:
+		# 				wait += max(int(S_intv_k - (warps_ij - 1) * P_inst), 0)
+		# 			else:
+		# 				long_scoreboard += max(int(S_intv_k - (warps_ij - 1) * P_inst), 0)
+		# else:
+		# 	print("Error: unsupported warp scheduling policy")
+		# 	exit(1)
+		for stage_info in interval_list:
+			if "stall_stage" in stage_info:
+				if stage_info["stall_type"] == 2:
+					wait += stage_info["stall_stage"]
+				else:
+					if stage_info["stall_type"] == 1
+						long_scoreboard += stage_info["stall_stage"]
 					else:
-						S_MemData_ij += max(int(S_intv_k - cycle_other), 0)
-		elif self.acc.warp_scheduling_policy == "LRR":  
-			'''
-				Use LRR warp schedule policy
-			'''
-			for stage_info in interval_list:
-				if "stall_stage" in stage_info:
-					S_intv_k = stage_info["stall_stage"]
-					if stage_info["stall_type"] == 2:
-						S_ComData_ij += max(int(S_intv_k - (warps_ij - 1) * P_inst), 0)
-					else:
-						S_MemData_ij += max(int(S_intv_k - (warps_ij - 1) * P_inst), 0)
-		else:
-			print("Error: unsupported warp scheduling policy")
-			exit(1)
+						short_scoreboard += stage_info["stall_stage"]
 		# calculate C_active_ij and C_idle_ij
-		C_active_ij = C_base_ij + S_ComData_ij + S_MemData_ij
+		C_active_ij = selected + wait + long_scoreboard + short_scoreboard
 		C_idle_ij = 0 # we will calculate it later in kernel
 		C_ij = C_active_ij + C_idle_ij
 
@@ -415,7 +434,7 @@ class Kernel():
 			Modeling the Cycles of a Core
 		'''
 		Si = 0
-		S_ComStruct_i = 0
+		math_pipe_throttle = 0
 		S_MemStruct_i = 0
 		'''		
 			GCoM claim: num_cncr_warps is the maximum number of warps that an SM can concurrently execute
@@ -529,7 +548,7 @@ class Kernel():
 		com1, mem1 = result_cm1
 		result_cm2, all_struct_info2 = com_struct_and_mem_struct(warps_per_SM % num_cncr_warps)
 		com2, mem2 = result_cm2
-		S_ComStruct_i = com1 * (warps_per_SM // num_cncr_warps) + com2
+		math_pipe_throttle = com1 * (warps_per_SM // num_cncr_warps) + com2
 		S_MemStruct_i = mem1 * (warps_per_SM // num_cncr_warps) + mem2
 		if warps_per_SM // num_cncr_warps > 0:
 			self.logger.write(all_struct_info1)
@@ -543,7 +562,7 @@ class Kernel():
 		S_NoC_i = int(MDM_output["NoC"])
 		S_Dram_i = int(MDM_output["Dram"])
 		
-		Si = S_ComStruct_i + S_MemStruct_i + S_MSHR_i + S_NoC_i + S_Dram_i
+		Si = math_pipe_throttle + S_MemStruct_i + S_MSHR_i + S_NoC_i + S_Dram_i
 		C_active_i = C_ij + Si
 
 		C_idle_i = 0 # we will calculate it later in kernel
@@ -551,18 +570,20 @@ class Kernel():
 		
 		general_GCoM_output = {
 			"GCoM": C,
-			"C_base_ij": C_base_ij,
-			"S_ComData_ij": S_ComData_ij,
-			"S_MemData_ij": S_MemData_ij,
+			"selected": selected,
+			"wait": wait,
+			"long_scoreboard": long_scoreboard,
+			"short_scoreboard": short_scoreboard,
 			"C_idle_ij_orig": C_idle_ij,
 			"C_idle_ij_ID": 0,
-			"S_ComStruct_i": S_ComStruct_i,
+			"math_pipe_throttle": math_pipe_throttle,
 			"S_MemStruct_i": S_MemStruct_i,
 			"S_MSHR_i": S_MSHR_i,
 			"S_NoC_i": S_NoC_i,
 			"S_Dram_i": S_Dram_i,			
 			"C_idle_i_orig": C_idle_i,
 			"C_idle_i_ID": 0,
+			"drain": drain,
 		}
 
 
@@ -620,8 +641,8 @@ class Kernel():
 			rptv_output["C_idle_ij_orig"] += max_cycles_in_sub_core - rptv_output["GCoM"]
 			rptv_output["GCoM"] += rptv_output["C_idle_ij_orig"]
 
-		if max_inst_cnt > rptv_output["C_base_ij"]:
-			rptv_output["C_idle_ij_ID"] = max_inst_cnt - rptv_output["C_base_ij"]
+		if max_inst_cnt > rptv_output["selected"]:
+			rptv_output["C_idle_ij_ID"] = max_inst_cnt - rptv_output["selected"]
 		else:
 			rptv_output["C_idle_ij_ID"] = 0
 

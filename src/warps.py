@@ -103,8 +103,11 @@ class Warp(object):
                 # stall for some reason
                 issue_cycle = max_dep + 1
                 stall_inst = self.tasklist[stall_reason]
-                if "MEM" in stall_inst[0]: # 1 means memData 2 means comData
-                    stall_reason_list.append(1)
+                if "MEM" in stall_inst[0]: # 0 means memData for share mem, 1 means memData for L1, 2 means comData
+                    if "SHARED" in stall_inst[0]:
+                        stall_reason_list.append(0)
+                    else:
+                        stall_reason_list.append(1)
                 else:
                     stall_reason_list.append(2)
                 # if stall_inst[0] not in stall_type_count:
