@@ -423,7 +423,7 @@ class Kernel():
 				if stage_info["stall_type"] == 2:
 					wait += stage_info["stall_stage"]
 				else:
-					if stage_info["stall_type"] == 1
+					if stage_info["stall_type"] == 1:
 						long_scoreboard += stage_info["stall_stage"]
 					else:
 						short_scoreboard += stage_info["stall_stage"]
@@ -572,9 +572,10 @@ class Kernel():
 		C = int(C_active_i + C_idle_i)
 		
 		general_GCoM_output = {
-			"warp_state_stall_stack": C,
+			"GCoM": C,
 			"selected": selected,
 			"wait": wait,
+			"drain": drain,
 			"long_scoreboard": long_scoreboard,
 			"short_scoreboard": short_scoreboard,
 			"C_idle_ij_orig": C_idle_ij,
@@ -587,7 +588,6 @@ class Kernel():
 			"S_Dram_i": S_Dram_i,			
 			"C_idle_i_orig": C_idle_i,
 			"C_idle_i_ID": 0,
-			"drain": drain,
 		}
 
 
