@@ -22,16 +22,13 @@ units_latency = {
 
     "SFU"               :  23,
     "dSFU"              :  16,
-    # for tensor core we use flops/cycle instead and will calculate the latency later
+    # for tensor core we use FMA/cycle instead and will calculate the latency later
     "iTCU"              :  4,
     "hTCU"              :  128, # accumulator FP16
     "fTCU"              :  64, # accumulator FP32
-    # "hTCU"              :  16, # accumulator FP16
-    # "fTCU"              :  32, # accumulator FP32
     "dTCU"              :  64,
 
     "BRA"               :  4,
-    # "EXIT"              :  4,
     #Memory Units Latencies
     "dram_mem_access"   :   290,
     "l1_cache_access"   :   33,
@@ -48,57 +45,26 @@ units_latency = {
 
 }
 
-# initial_interval = {
-
-#     # Functional Units initial interval: model throughput of single SM
-#     # Initiation interval (II) = threadsPerWarp / #FULanes
-#     "iALU"              :   2,
-#     "fALU"              :   2,
-#     "hALU"              :   2,
-#     "dALU"              :   128,
-
-#     "SFU"               :   8,
-#     "dSFU"              :   128,
-    
-#     # "bTCU"              :   64,
-#     "iTCU"              :   4,
-#     # this is to model the bw of FP16 accumulator, which is 512 FMA/clk/SM
-#     # and one HMMA.16816.F16 instruction uses 16 * 8 * 16 = 2048 FMA
-#     # so the initial_interval is 2048 / 512 = 4
-#     "hTCU"              :   4,
-#     # this is to model the bw of FP32 accumulator, which is 256 FMA/clk/SM
-#     # and one HMMA.16816.F32 instruction uses 16 * 8 * 16 = 2048 FMA
-#     # so the initial_interval is 2048 / 256 = 8 
-#     "fTCU"              :   8,
-#     "dTCU"              :   16,
-#     "BRA"               :   4,
-#     "EXIT"              :   4,
-# }
 initial_interval = {
 
     # Initiation interval (II) = threadsPerWarp / #FULanes
-    "iALU"              :   32 / 16,
-    "fALU"              :   32 / 32,
-    "hALU"              :   32 / 32,
-    "dALU"              :   32 / 0.5,
+    "iALU"              :   0,
+    "fALU"              :   0,
+    "hALU"              :   0,
+    "dALU"              :   0,
 
-    "SFU"               :   32 / 4,
+    "SFU"               :   0,
     "dSFU"              :   32 / 1,
 
     "LDST"              :   32 / 32,
     # we will not use initial_interval for TCU for now
-    # "bTCU"              :   64,
     "iTCU"              :   32 / 1,
     "hTCU"              :   128, # accumulator FP16
     "fTCU"              :   64, # accumulator FP32
-    "dTCU"              :   32 / 1,
-    # "iTCU"              :   32 / 1,
-    # "hTCU"              :   32 / 2,
-    # "fTCU"              :   32 / 1,
-    # "dTCU"              :   32 / 1,
+    "dTCU"              :   0, # Ampere not support double precision, this only support in Tesla_Ampere
     "BRA"               :   32 / 32,
-    # "EXIT"              :   32 / 16,
 }
+
 sass_isa = {
 
     # Integer Instructions

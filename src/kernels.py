@@ -43,8 +43,6 @@ class Kernel():
 		self.kernel_smem_size = kernel_info["smem_size"]
 		self.ISA = "SASS"
 		self.sass_file_path = kernel_info["sass_file_path"]
-		# self.method_name = kernel_info["method_name"]
-
 		## kernel local predictions outputs
 		self.pred_out = {}
 		pred_out = self.pred_out
@@ -57,21 +55,10 @@ class Kernel():
 		pred_out["total_num_workloads"] = 0
 		pred_out["active_SMs"] = 0
 		pred_out["max_active_blocks_per_SM"] = self.acc.max_active_blocks_per_SM
-		# pred_out["blocks_per_SM_limit_warps"] = 0
-		# pred_out["blocks_per_SM_limit_regs"] = 0
-		# pred_out["blocks_per_SM_limit_smem"] = 0
-		# pred_out["th_active_blocks"] = 0
-		# pred_out["th_active_warps"] = 0
-		# pred_out["th_active_threads"] = 0
-		# pred_out["allocated_active_blocks_per_SM"] = 0
 		pred_out["allocated_active_warps_per_block"] = 0
-		# pred_out["num_workloads_per_SM"] = 0
-		# pred_out["num_workloads_per_SM_new"] = 0
 		pred_out["warps_instructions_executed"] = 0
 		pred_out["ipc"] = 0.0
-		# pred_out["l1_cache_bypassed"] = self.acc.l1_cache_bypassed
 		pred_out["kernel_launch_intercept"] = self.acc.kernel_launch_overhead
-		# pred_out["tot_warps_instructions_executed"] = 0
 		pred_out["AMAT"] = 0.0
 		pred_out["ACPAO"] = 0.0
 		pred_out["l1_parallelism"] = 0
@@ -94,15 +81,10 @@ class Kernel():
 		pred_out["active_SMs"] = min(self.acc.num_SMs, pred_out["total_num_workloads"]) # if #blocks > #SMs, then all SM will be active. else active as many SMs as the #blocks
 		pred_out["allocated_active_warps_per_block"] = int(ceil((float(self.kernel_block_size)/float(self.acc.warp_size)),1))
 		# calculate kernel launch latency
-		# print(pred_out["allocated_active_warps_per_block"],pred_out["allocated_active_blocks_per_SM"],
-		# pred_out["total_num_workloads"],pred_out["kernel_launch_intercept"])
 		slope = 0.0036 * pred_out["allocated_active_warps_per_block"] ** 2 \
 			- 0.0366 * pred_out["allocated_active_warps_per_block"] + 1.1891
 		self.kernel_launch_latency = ceil(slope * pred_out["total_num_workloads"] + pred_out["kernel_launch_intercept"],1)
-
 		self.logger = Logger(self.pred_out, kernel_info["log"])
-		# print(self.kernel_launch_latency)
-		# return 0
 
 	def kernel_call_GCoM(self, data, name, num):
 		pred_out = self.pred_out
@@ -200,18 +182,6 @@ class Kernel():
 		# 	select the representive warps and count warp num
 		# 	use Kmeans algorithm
 		# '''
-		# kmeans_features = []
-		# warp_info = []
-		# for SM in SM_block_list:
-		# 	for sub_core_block in SM:
-		# 		for warp in sub_core_block.warp_list:
-		# 			_, total_cycles, _ = warp.interval_analyze()
-		# 			warp_total_inst = warp.current_inst
-		# 			kmeans_features.append([warp_total_inst / total_cycles, warp_total_inst])
-		# 			warp_info.append((sub_core_block.id, warp.id))
-		# all_center_warp_idx_list, represetative_index = rptv_warp_select(kmeans_features)
-
-		# represetative_sm_warp_pair = warp_info[represetative_index]
 		rptv_warp_GCoM_output = self.calculate_GCoM(SM_block_list, 
 								total_warp_num, represetative_sm_warp_pair,
 								pred_out,
@@ -226,8 +196,6 @@ class Kernel():
 		# write output to file
 		write_to_file(pred_out)
 		# logging
-		# self.logger.write("all_center_warp_idx and represetative warp index")
-		# self.logger.write(all_center_warp_idx_list, represetative_index)
 		self.logger.write("pred_out:")
 		self.logger.write(pred_out)
 		self.logger.write("rptv_warp_GCoM_output:")
@@ -238,6 +206,7 @@ class Kernel():
 	def spawn_SM_tasklists(self, gpu, SM_id, tasklist, kernel_id, isa, avg_mem_lat, avg_atom_lat):
 		'''
 			return a list of Blocks to run on one SM each with allocated number of warps
+			one block contains all warp running on a specific sub-core
 		'''
 		new_tasklists = []  		
 		block_list = []	
@@ -283,7 +252,7 @@ class Kernel():
 						sub_core_warps_num = len(cur_sub_core.warp_list)
 						interval_analysis_result = rptv_warp.interval_analyze()
 						pred_out["warps_instructions_executed"] = rptv_warp.current_inst * total_warp_num # used in calculating ipc
-
+						# logging
 						self.logger.write("profiling rtpv warp")
 						self.logger.write(len(rptv_warp.tasklist))
 						self.logger.write("args:",
@@ -387,37 +356,7 @@ class Kernel():
 		wait = 0
 		long_scoreboard = 0
 		short_scoreboard = 0
-		# according to GPUMech, the probability of issuing an instruction
-		P_inst = num_warp_inst / total_cycles
-		# calculate wait and long_scoreboard
-		# if self.acc.warp_scheduling_policy == "GTO":		
-		# 	'''
-		# 		Use GTO warp schedule policy
-		# 	'''
-		# 	avg_int_insts = (num_warp_inst / total_intervals)
-		# 	for stage_info in interval_list:
-		# 		if "stall_stage" in stage_info:
-		# 			S_intv_k = stage_info["stall_stage"]
-		# 			P_warp = min(S_intv_k * P_inst, 1)
-		# 			cycle_other = int(P_warp* (warps_ij - 1) * avg_int_insts / issue_rate)
-		# 			if stage_info["stall_type"] == 2:
-		# 				wait += max(int(S_intv_k - cycle_other), 0) 
-		# 			else:
-		# 				long_scoreboard += max(int(S_intv_k - cycle_other), 0)
-		# elif self.acc.warp_scheduling_policy == "LRR":  
-		# 	'''
-		# 		Use LRR warp schedule policy
-		# 	'''
-		# 	for stage_info in interval_list:
-		# 		if "stall_stage" in stage_info:
-		# 			S_intv_k = stage_info["stall_stage"]
-		# 			if stage_info["stall_type"] == 2:
-		# 				wait += max(int(S_intv_k - (warps_ij - 1) * P_inst), 0)
-		# 			else:
-		# 				long_scoreboard += max(int(S_intv_k - (warps_ij - 1) * P_inst), 0)
-		# else:
-		# 	print("Error: unsupported warp scheduling policy")
-		# 	exit(1)
+		# calculate wait, long_scoreboard and short_scoreboard
 		for stage_info in interval_list:
 			if "stall_stage" in stage_info:
 				if stage_info["stall_type"] == 2:

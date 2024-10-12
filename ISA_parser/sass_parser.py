@@ -150,8 +150,10 @@ def parse(units_latency, sass_instructions, sass_path, logger):
                         flops = 8 * 8 * 8
                     else:
                         print("[Error] Unknown HMMA instruction")
-                        
-                    if "F32" in opcodeAndOption:
+                    
+                    if "BF16" in opcodeAndOption:
+                        unit = "bTCU"
+                    elif "F32" in opcodeAndOption:
                         unit = "fTCU"
                     else:
                         unit = "hTCU"
@@ -236,7 +238,8 @@ def parse(units_latency, sass_instructions, sass_path, logger):
     sorted_task_len_cnt = sorted(task_len_cnt.items(), key=lambda item: item[0], reverse=True)
     for key, value in sorted_task_len_cnt:
         logger.write("task len: {:d} number: {:d}".format(key,value))
-    # end looging and return     
+    # end logging 
+    # select representative warp using kmean clustering   
     import numpy as np
     from collections import Counter
 

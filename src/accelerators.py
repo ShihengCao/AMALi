@@ -254,65 +254,71 @@ class Accelerator(object):
 		self.atomic_op_access_latency = self.units_latency["atomic_operation"]
 		self.kernel_launch_overhead = self.units_latency["kernel_launch_ovhd"]
 
-		self.hw_units = {}
+		# self.hw_units = {}
 		self.tasklist = {}
-
+		# calucate initial intervals, the formul: size of warp / number of function units per warp scheduler
+		self.initial_interval['iALU'] = self.warp_size / (self.num_INT_units_per_SM / self.num_warp_schedulers_per_SM)
+		self.initial_interval['fALU'] = self.warp_size / (self.num_SP_units_per_SM / self.num_warp_schedulers_per_SM)
+		self.initial_interval['hALU'] = self.warp_size / (self.num_SP_units_per_SM / self.num_warp_schedulers_per_SM)
+		self.initial_interval['dALU'] = self.warp_size / (self.num_DP_units_per_SM / self.num_warp_schedulers_per_SM)
+		self.initial_interval['SFU'] = self.warp_size / (self.num_SF_units_per_SM / self.num_warp_schedulers_per_SM)
 		
-		for j in range(num_kernels):
-			# GPU hardware units 
-			current_hw_units = {}
-
-			# init GPU hardware units for the current kernel
-			INT_units = []
-			for i in range(self.num_INT_units_per_SM): INT_units.append(0.)
-			current_hw_units["INT_units"] = INT_units
-
-			SP_units = []
-			for i in range(self.num_SP_units_per_SM): SP_units.append(0.)
-			current_hw_units["SP_units"] = SP_units
 		
-			DP_units = []
-			for i in range(self.num_DP_units_per_SM): DP_units.append(0.)
-			current_hw_units["DP_units"] = DP_units
+		# for j in range(num_kernels):
+		# 	# GPU hardware units 
+		# 	current_hw_units = {}
+
+		# 	# init GPU hardware units for the current kernel
+		# 	INT_units = []
+		# 	for i in range(self.num_INT_units_per_SM): INT_units.append(0.)
+		# 	current_hw_units["INT_units"] = INT_units
+
+		# 	SP_units = []
+		# 	for i in range(self.num_SP_units_per_SM): SP_units.append(0.)
+		# 	current_hw_units["SP_units"] = SP_units
 		
-			SF_units = []
-			for i in range(self.num_SF_units_per_SM): SF_units.append(0.)
-			current_hw_units["SF_units"] = SF_units
+		# 	DP_units = []
+		# 	for i in range(self.num_DP_units_per_SM): DP_units.append(0.)
+		# 	current_hw_units["DP_units"] = DP_units
+		
+		# 	SF_units = []
+		# 	for i in range(self.num_SF_units_per_SM): SF_units.append(0.)
+		# 	current_hw_units["SF_units"] = SF_units
 
-			TC_units = []
-			for i in range(self.num_TC_units_per_SM): TC_units.append(0.) 
-			current_hw_units["TC_units"] = TC_units
+		# 	TC_units = []
+		# 	for i in range(self.num_TC_units_per_SM): TC_units.append(0.) 
+		# 	current_hw_units["TC_units"] = TC_units
 
-			LDS_units = []
-			for i in range(self.num_LDS_units_per_SM): LDS_units.append(0.)
-			current_hw_units["LDS_units"] = LDS_units
+		# 	LDS_units = []
+		# 	for i in range(self.num_LDS_units_per_SM): LDS_units.append(0.)
+		# 	current_hw_units["LDS_units"] = LDS_units
 			
-			BRA_units = []
-			for i in range(self.num_BRA_units_per_SM): BRA_units.append(0.) 
-			current_hw_units["BRA_units"] = BRA_units
+		# 	BRA_units = []
+		# 	for i in range(self.num_BRA_units_per_SM): BRA_units.append(0.) 
+		# 	current_hw_units["BRA_units"] = BRA_units
 
-			TEX_units = []
-			for i in range(self.num_TEX_units_per_SM): BRA_units.append(0.) 
-			current_hw_units["TEX_units"] = TEX_units
+		# 	TEX_units = []
+		# 	for i in range(self.num_TEX_units_per_SM): BRA_units.append(0.) 
+		# 	current_hw_units["TEX_units"] = TEX_units
 
-			#k_id = int(kernels_info[j]["kernel_id"])
-			#self.hw_units[k_id] = current_hw_units
-			self.hw_units[j] = current_hw_units
+		# 	#k_id = int(kernels_info[j]["kernel_id"])
+		# 	#self.hw_units[k_id] = current_hw_units
+		# 	self.hw_units[j] = current_hw_units
 
 
 
 		
-	def request_unit(self, cycles, delay, units):
-		'''
-		return True if the request is fulfilled
-		'''
-		result = False
-		for i in range(len(units)):
-			if units[i] <= cycles:
-				units[i] = cycles + delay
-				result = True
-				break
-		return result
+	# def request_unit(self, cycles, delay, units):
+	# 	'''
+	# 	return True if the request is fulfilled
+	# 	'''
+	# 	result = False
+	# 	for i in range(len(units)):
+	# 		if units[i] <= cycles:
+	# 			units[i] = cycles + delay
+	# 			result = True
+	# 			break
+	# 	return result
 
 	def update_shared_mem(self, shared_mem_bytes):
 		'''
