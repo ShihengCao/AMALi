@@ -7,6 +7,9 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <fstream>
+#include <sstream>
+#include <algorithm>
 #include <unordered_set>
 #include <unordered_map>
 #include <fstream>
@@ -69,8 +72,45 @@ int kernel_gridX = 0;
 int kernel_gridY = 0;
 int kernel_gridZ = 0;
 
+// 检查并移除 UTF-8 BOM
+void remove_bom(std::string& str) {
+    const std::string bom = "\xEF\xBB\xBF";
+    if (str.compare(0, bom.size(), bom) == 0) {
+        str.erase(0, bom.size());
+    }
+}
+std::unordered_set<int> kernel_ids_to_analyze;
+int load_kernel_ids(){
+    std::ifstream file("kernel_ids.txt");
 
+    if (!file.is_open()) {
+        std::cerr << "Unable to open file." << std::endl;
+        return 1;
+    }
 
+    std::string content;
+    std::getline(file, content);
+
+    // 移除文件开头可能的 BOM
+    remove_bom(content);
+
+    std::stringstream ss(content);
+    std::string token;
+
+    while (std::getline(ss, token, ',')) {
+        // 将每个整数转换为int并存入unordered_set
+        
+        // cout << ss << endl;
+        token.erase(0, token.find_first_not_of(' ')); // 左侧空格
+        token.erase(token.find_last_not_of(' ') + 1); // 右侧空格
+        token.erase(remove_if(token.begin(), token.end(), [](unsigned char x){ return std::isspace(x); }), token.end());
+        // print_token_ascii(token);
+        kernel_ids_to_analyze.insert(std::stoi(token));
+    }
+
+    file.close();
+    return 0;
+}
 /* nvbit_at_init() is executed as soon as the nvbit tool is loaded. We
  * typically do initializations in this call. In this case for instance we get
  * some environment variables values which we use as input arguments to the tool
@@ -85,13 +125,20 @@ void nvbit_at_init() {
         "End of the instruction interval where to apply instrumentation");
     string pad(100, '-');
     printf("%s\n", pad.c_str());
-
+    int key = load_kernel_ids();
+    if(key==1){
+        cout << "error loading kernel_ids.txt" << std::endl;
+    }
+    // printf("kernel_ids_open");
     app_config_fp.open("app_config.py");
     
     if (mkdir("memory_traces", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == -1){
         if( errno == EEXIST ) {
         // alredy exists
-        system("rm memory_traces/*");
+        int result = system("rm -f memory_traces/*");
+        if (result != 0) {
+            std::cerr << "Failed to remove files in memory_traces/ directory. Error code: " << result << std::endl;
+        }
         } else {
         // something else
             cout << "cannot create memory_traces directory error:" << strerror(errno) << std::endl;
@@ -103,7 +150,10 @@ void nvbit_at_init() {
     if (mkdir("sass_traces", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == -1){
         if( errno == EEXIST ) {
         // alredy exists
-        system("rm sass_traces/*");
+        int result = system("rm -f sass_traces/*");
+        if (result != 0) {
+            std::cerr << "Failed to remove files in sass_traces/ directory. Error code: " << result << std::endl;
+        }
         } else {
         // something else
             std::cout << "cannot create sass_traces directory error:" << strerror(errno) << std::endl;
@@ -333,15 +383,13 @@ __global__ void flush_channel() {
 void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                         const char *name, void *params, CUresult *pStatus) {
     if (skip_flag) return;
-
     if (kernel_id > MAX_KERNELS){
         exit(0);
     } 
-
+   
     if (cbid == API_CUDA_cuLaunchKernel_ptsz || cbid == API_CUDA_cuLaunchKernel) {
 
         cuLaunchKernel_params *p = (cuLaunchKernel_params *)params;
-
 
             if (!is_exit) {
 
@@ -407,9 +455,6 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                     tot_num_warps = 1;
 
                 string kernel_name = nvbit_get_func_name(ctx, p->f, true);
-                // string delimiter = "(";
-                // cout<< kernel_name <<"\n";
-                // kernel_name  = kernel_name.substr(0, kernel_name.find(delimiter));
 
                 app_config_fp << "kernel_" + to_string(kernel_id) <<" = {\n\n";
                 app_config_fp <<"\t\"kernel_name\"\t\t\t: \""<<kernel_name<<"\",\n";
@@ -439,9 +484,6 @@ void *recv_thread_fun(void *) {
 
     while (recv_thread_started) {
         uint32_t num_recv_bytes = 0;
-        // printf("instrument_inst start");
-        // printf("%d",recv_thread_receiving);
-        // printf("%d",channel_host.recv(recv_buffer, CHANNEL_SIZE));
         if (recv_thread_receiving && 
             (num_recv_bytes = channel_host.recv(recv_buffer, CHANNEL_SIZE)) > 0) {
             uint32_t num_processed_bytes = 0;
@@ -450,58 +492,45 @@ void *recv_thread_fun(void *) {
                 inst_access_t *ia = (inst_access_t *)&recv_buffer[num_processed_bytes];
 
                 if (ia->cta_id_x == -1) {
-                    // printf("instrument_inst false");
                     recv_thread_receiving = false;
                     break;
                 }
-                // if (first_warp_exec == 0){
-                //     current_sm_id = ia->sm_id;
-                //     current_cta_id_x = ia->cta_id_x;
-                //     current_cta_id_y = ia->cta_id_y;
-                //     current_cta_id_z = ia->cta_id_z;
-                //     current_warp_id = ia->warp_id;
-                //     first_warp_exec = 1;
-                // }
+                if(kernel_ids_to_analyze.find(kernel_id) != kernel_ids_to_analyze.end()){
+                    insts_trace_fp<<ia->sm_id<<" "; 
+                    insts_trace_fp<<ia->warp_id<<" "; 
 
-                // printf("recv_thread_fun");
-                // if(ia->sm_id == current_sm_id && ia->cta_id_x == current_cta_id_x && ia->cta_id_y == current_cta_id_y && ia->cta_id_z == current_cta_id_z)
-                {
-                        insts_trace_fp<<ia->sm_id<<" "; 
-                        insts_trace_fp<<ia->warp_id<<" "; 
+                    /* opcode */
+                    insts_trace_fp<<id_to_opcode_map[ia->opcode_id]<<" ";
 
-                        /* opcode */
-                        insts_trace_fp<<id_to_opcode_map[ia->opcode_id]<<" ";
-
-                        /* destination operands */
-                        if(ia->dst_oprnd_type == 1 || ia->dst_oprnd_type == 3 || ia->dst_oprnd_type == -1 || ia->dst_oprnd_type == -3){
-                            if(ia->dst_oprnd_type < 0)
-                                insts_trace_fp<<"U";
-                            insts_trace_fp<<"R"<<ia->dst_oprnd << " ";
-                        }else if (ia->dst_oprnd_type == 2 || ia->dst_oprnd_type == -2){
-                            if(ia->dst_oprnd_type < 0)
-                                insts_trace_fp<<"U";
-                            insts_trace_fp<<"P"<<ia->dst_oprnd << " ";
-                        }
-                        
-                        /* src operands */
-                        for(int i=0; i<5; i++){
-                            if(ia->src_oprnds[i] != -1){
-                                if (ia->src_oprnds_type[i] == 1 || ia->src_oprnds_type[i] == 3 || ia->src_oprnds_type[i] == -1){
-                                    if(ia->src_oprnds_type[i] < 0)
-                                        insts_trace_fp<<"U";
-                                    insts_trace_fp<<"R"<<ia->src_oprnds[i]<<" ";
-                                }else if(ia->src_oprnds_type[i] == 2 || ia->src_oprnds_type[i] == -2){
-                                    if(ia->src_oprnds_type[i] < 0)
-                                        insts_trace_fp<<"U";
-                                    insts_trace_fp<<"P"<<ia->src_oprnds[i]<< " ";
-                                }
+                    /* destination operands */
+                    if(ia->dst_oprnd_type == 1 || ia->dst_oprnd_type == 3 || ia->dst_oprnd_type == -1 || ia->dst_oprnd_type == -3){
+                        if(ia->dst_oprnd_type < 0)
+                            insts_trace_fp<<"U";
+                        insts_trace_fp<<"R"<<ia->dst_oprnd << " ";
+                    }else if (ia->dst_oprnd_type == 2 || ia->dst_oprnd_type == -2){
+                        if(ia->dst_oprnd_type < 0)
+                            insts_trace_fp<<"U";
+                        insts_trace_fp<<"P"<<ia->dst_oprnd << " ";
+                    }
+                    
+                    /* src operands */
+                    for(int i=0; i<5; i++){
+                        if(ia->src_oprnds[i] != -1){
+                            if (ia->src_oprnds_type[i] == 1 || ia->src_oprnds_type[i] == 3 || ia->src_oprnds_type[i] == -1){
+                                if(ia->src_oprnds_type[i] < 0)
+                                    insts_trace_fp<<"U";
+                                insts_trace_fp<<"R"<<ia->src_oprnds[i]<<" ";
+                            }else if(ia->src_oprnds_type[i] == 2 || ia->src_oprnds_type[i] == -2){
+                                if(ia->src_oprnds_type[i] < 0)
+                                    insts_trace_fp<<"U";
+                                insts_trace_fp<<"P"<<ia->src_oprnds[i]<< " ";
                             }
                         }
+                    }
 
-                        insts_trace_fp<<"\n";     
+                    insts_trace_fp<<"\n";     
                 }
-
-                if (ia->is_mem_inst == 1){
+                if (ia->is_mem_inst == 1 && kernel_ids_to_analyze.find(kernel_id) != kernel_ids_to_analyze.end()){
 
                     ofstream mem_trace_fp;
 
