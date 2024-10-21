@@ -149,7 +149,7 @@ def main():
             if current_argument in ("-h", "--help"):
                 usage()
                 sys.exit(2)
-    elif len(argument_list) > 11 or len(argument_list) < 5:
+    elif len(argument_list) > 11 or len(argument_list) < 2:
         print("\n[Error]\nincorrect number arguments")
         usage()
         sys.exit(1)
@@ -255,6 +255,8 @@ def main():
             complete_files = os.listdir(os.path.join("../outputs",app_output_dir))
             for file in complete_files:
                 cur_id = int(file.split('_')[0])
+                if cur_id not in app_kernels_id:
+                    continue
                 app_kernels_id.remove(cur_id)
         for kernel_id in app_kernels_id:
             kernels_info.append(get_current_kernel_info(str(kernel_id), app_name, app_path, app_config, log))

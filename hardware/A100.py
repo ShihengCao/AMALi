@@ -76,9 +76,7 @@ uarch = {
 
     # L2 total size 6144 KB, each subpartition is 96 KB. This gives ~ 64 memory parition
     "num_l2_partitions"	                :  80,
-    # Volta has HBM which has 24 channels each (128 bits) 16 bytes width 
-    # assume Ampere has same architecture with Volta
-    "num_dram_channels"	                :  24,
+    "num_dram_channels"	                :  40,
     # DRAM theoritical BW, measured through microbenchmarking
     "dram_th_bandwidth"                 :  1940 * 10**9, #B/s [1]
     # base GPU DRAM clock speed in HZ 
