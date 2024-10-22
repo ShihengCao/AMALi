@@ -49,9 +49,9 @@ initial_interval = {
 
     # Initiation interval (II) = threadsPerWarp / #FULanes
     "iALU"              :   32 / 16,
-    "fALU"              :   32 / 32,
-    "hALU"              :   32 / 32,
-    "dALU"              :   32 / 0.5,
+    "fALU"              :   32 / 16,
+    "hALU"              :   32 / 16,
+    "dALU"              :   32 / 8,
 
     "SFU"               :   32 / 4,
     "dSFU"              :   32 / 4,
