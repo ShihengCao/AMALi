@@ -48,19 +48,19 @@ units_latency = {
 initial_interval = {
 
     # Initiation interval (II) = threadsPerWarp / #FULanes
-    "iALU"              :   0,
-    "fALU"              :   0,
-    "hALU"              :   0,
-    "dALU"              :   0,
+    "iALU"              :   32 / 16,
+    "fALU"              :   32 / 32,
+    "hALU"              :   32 / 32,
+    "dALU"              :   32 / 0.5,
 
-    "SFU"               :   0,
-    "dSFU"              :   32 / 1,
+    "SFU"               :   32 / 4,
+    "dSFU"              :   32 / 4,
 
-    "LDST"              :   32 / 32,
-    # we will not use initial_interval for TCU for now
-    "bTCU"              :   32 / 1, # compute BF16 accumulator FP32
+    "iTCU"              :   32 / 1,
     "hTCU"              :   32 / 1, # accumulator FP16
     "fTCU"              :   32 / 1, # accumulator FP32
+    "dTCU"              :   32 / 1,
+    
     "BRA"               :   32 / 32,
 }
 sass_isa = {
