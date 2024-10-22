@@ -23,9 +23,9 @@ units_latency = {
     "SFU"               :  23,
     "dSFU"              :  16,
     # for tensor core we use FMA/cycle instead and will calculate the latency later
-    "hTCU"              :  256, # accumulator FP16
-    "fTCU"              :  256, # accumulator FP32
-    "bTCU"              :  256, # accumulator BF16
+    "hTCU"              :  8, # accumulator FP16
+    "fTCU"              :  8, # accumulator FP32
+    "bTCU"              :  8, # accumulator BF16
     "dTCU"              :  64,
 
     "BRA"               :  4,
@@ -58,9 +58,9 @@ initial_interval = {
 
     "LDST"              :   32 / 32,
     # we will not use initial_interval for TCU for now
-    "bTCU"              :   256, # compute BF16 accumulator FP32
-    "hTCU"              :   256, # accumulator FP16
-    "fTCU"              :   256, # accumulator FP32
+    "bTCU"              :   32 / 1, # compute BF16 accumulator FP32
+    "hTCU"              :   32 / 1, # accumulator FP16
+    "fTCU"              :   32 / 1, # accumulator FP32
     "BRA"               :   32 / 32,
 }
 sass_isa = {
