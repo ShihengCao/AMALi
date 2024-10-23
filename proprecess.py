@@ -8,7 +8,7 @@ outputs_dir = os.path.join(workspace_path, Project_name)
 output_file = os.path.join(workspace_path, Project_name + ".csv")
 ground_truth_dir = os.path.join('.', "HW")
 ground_truth_file = os.path.join(ground_truth_dir, Project_name + "_10_m.csv")
-
+print(os.listdir(ground_truth_dir))
 files = os.listdir(outputs_dir)
 
 def get_idx(name):
@@ -71,6 +71,8 @@ def add_average_to_df(df, ground_truth_file):
     # 确保kernel_id列存在且为整数类型
     if 'kernel_id' not in df.columns:
         raise ValueError("DataFrame中缺少kernel_id列")
+    # print(df['kernel_id'])
+    #print(df['kernel_id'].unique())
     df['kernel_id'] = df['kernel_id'].astype(int)
     
     # 确保Average列存在于ground_truth_file中
@@ -121,10 +123,11 @@ for idx, row in df_10_m.iterrows():
     #print(row["similar_kernel_ids"])
     #print(df_fp16['kernel_id'])
     closest_row_data = df_fp16[df_fp16['kernel_id'] == int(row["similar_kernel_ids"])]
-    #print(closest_row_data)
+
     for col in columns_to_add:
         #print(closest_row_data[col])
-        merged_df.at[idx, col] = float(closest_row_data[col])        
+        if not closest_row_data[col].empty:
+            merged_df.at[idx, col] = float(closest_row_data[col].iloc[0])    
 
 
 # 保存合并后的文件
@@ -214,21 +217,25 @@ y_true_second = filtered_df_second['Ground_Truth_Average']
 mape_gcom_first = mean_absolute_percentage_error(y_true_first, filtered_df_first['GCoM'])
 mape_gcom_kll_first = mean_absolute_percentage_error(y_true_first, filtered_df_first['GCoM+KLL'])
 mape_gcom_kll_id_first = mean_absolute_percentage_error(y_true_first, filtered_df_first['GCoM+KLL+ID'])
+mape_gcom_id_first = mean_absolute_percentage_error(y_true_first, filtered_df_first['GCoM+ID'])
 
 # 打印结果 for first part
 print(f'First Part - MAPE of GCoM: {mape_gcom_first:.2f}%')
 print(f'First Part - MAPE of GCoM+KLL: {mape_gcom_kll_first:.2f}%')
-# print(f'First Part - MAPE of GCoM+KLL+ID: {mape_gcom_kll_id_first:.2f}%')
+print(f'First Part - MAPE of GCoM+KLL+ID: {mape_gcom_kll_id_first:.2f}%')
+print(f'First Part - MAPE of GCoM+ID: {mape_gcom_id_first:.2f}%')
 
 # 计算每一列与 Ground_Truth_Average 之间的 MAPE for second part
 mape_gcom_second = mean_absolute_percentage_error(y_true_second, filtered_df_second['GCoM'])
 mape_gcom_kll_second = mean_absolute_percentage_error(y_true_second, filtered_df_second['GCoM+KLL'])
 mape_gcom_kll_id_second = mean_absolute_percentage_error(y_true_second, filtered_df_second['GCoM+KLL+ID'])
+mape_gcom_id_second = mean_absolute_percentage_error(y_true_second, filtered_df_second['GCoM+ID'])
 
 # 打印结果 for second part
 print(f'Second Part - MAPE of GCoM: {mape_gcom_second:.2f}%')
 print(f'Second Part - MAPE of GCoM+KLL: {mape_gcom_kll_second:.2f}%')
-# print(f'Second Part - MAPE of GCoM+KLL+ID: {mape_gcom_kll_id_second:.2f}%')
+print(f'Second Part - MAPE of GCoM+KLL+ID: {mape_gcom_kll_id_second:.2f}%')
+print(f'Second Part - MAPE of GCoM+ID: {mape_gcom_id_second:.2f}%')
 
 # 拼接两个 DataFrame
 combined_df = pd.concat([filtered_df_first, filtered_df_second])
@@ -240,9 +247,9 @@ y_true_combined = combined_df['Ground_Truth_Average']
 mape_gcom_combined = mean_absolute_percentage_error(y_true_combined, combined_df['GCoM'])
 mape_gcom_kll_combined = mean_absolute_percentage_error(y_true_combined, combined_df['GCoM+KLL'])
 mape_gcom_kll_id_combined = mean_absolute_percentage_error(y_true_combined, combined_df['GCoM+KLL+ID'])
-
+mape_gcom_id_combined = mean_absolute_percentage_error(y_true_combined, combined_df['GCoM+ID'])
 # 打印结果 for the combined DataFrame
 print(f'Combined - MAPE of GCoM: {mape_gcom_combined:.2f}%')
 print(f'Combined - MAPE of GCoM+KLL: {mape_gcom_kll_combined:.2f}%')
-# print(f'Combined - MAPE of GCoM+KLL+ID: {mape_gcom_kll_id_combined:.2f}%')
-# print(f'MAPE of GCoM+KLL+ID: {mape_gcom_kll_id:.2f}%')
+print(f'Combined - MAPE of GCoM+KLL+ID: {mape_gcom_kll_id_combined:.2f}%')
+print(f'MAPE of GCoM+KLL+ID: {mape_gcom_id_combined:.2f}%')
