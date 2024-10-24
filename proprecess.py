@@ -122,8 +122,10 @@ for idx, row in df_10_m.iterrows():
     closest_row_data = df_fp16[df_fp16['kernel_id'] == int(row["similar_kernel_ids"])]
     #print(closest_row_data)
     for col in columns_to_add:
+        if not closest_row_data[col].empty:
+            merged_df.at[idx, col] = float(closest_row_data[col].iloc[0])
         #print(closest_row_data[col])
-        merged_df.at[idx, col] = float(closest_row_data[col])        
+        # merged_df.at[idx, col] = float(closest_row_data[col])        
 
 
 # 保存合并后的文件
