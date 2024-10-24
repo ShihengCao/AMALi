@@ -129,7 +129,6 @@ for idx, row in df_10_m.iterrows():
         if not closest_row_data[col].empty:
             merged_df.at[idx, col] = float(closest_row_data[col].iloc[0])    
 
-
 # 保存合并后的文件
 merged_df.to_csv(os.path.join(workspace_path, Project_name + "_extracted.csv"), index=False)
 
@@ -165,6 +164,7 @@ def select_kernels_and_save(df_10_m, df_fp16, workspace_path, Project_name, thre
     # 保存到 CSV 文件
     output_path = os.path.join(workspace_path, f"{Project_name}_selected.csv")
     filtered_df.to_csv(output_path, index=False)
+    filtered_df["GCoM+KLL+ID"] = filtered_df["GCoM+KLL"] + filtered_df["C_idle_i_ID"]
     print(f"Selected kernels saved to: {output_path}")
     return filtered_df
 
@@ -252,4 +252,4 @@ mape_gcom_id_combined = mean_absolute_percentage_error(y_true_combined, combined
 print(f'Combined - MAPE of GCoM: {mape_gcom_combined:.2f}%')
 print(f'Combined - MAPE of GCoM+KLL: {mape_gcom_kll_combined:.2f}%')
 print(f'Combined - MAPE of GCoM+KLL+ID: {mape_gcom_kll_id_combined:.2f}%')
-print(f'MAPE of GCoM+KLL+ID: {mape_gcom_id_combined:.2f}%')
+print(f'Combined - MAPE of GCoM+ID: {mape_gcom_id_combined:.2f}%')
