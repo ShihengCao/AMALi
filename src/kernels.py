@@ -304,7 +304,7 @@ class Kernel():
 		else:
 			rptv_warp_GCoM_output["GCoM+KLL"] = rptv_warp_GCoM_output["GCoM"] + self.kernel_launch_latency
 		rptv_warp_GCoM_output["GCoM+ID"] = rptv_warp_GCoM_output["GCoM"] + rptv_warp_GCoM_output["C_idle_i_ID"] + rptv_warp_GCoM_output["C_idle_ij_ID"]
-		rptv_warp_GCoM_output["GCoM+KLL+ID"] = rtpv_warpGCoM_output["GCoM+KLL"] + rptv_warp_GCoM_output["C_idle_i_ID"] 
+		rptv_warp_GCoM_output["GCoM+KLL+ID"] = rptv_warp_GCoM_output["GCoM+KLL"] + rptv_warp_GCoM_output["C_idle_i_ID"] 
 		return rptv_warp_GCoM_output
 		
 	def process_GCoM(self, warp: Warp, 
