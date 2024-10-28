@@ -193,7 +193,8 @@ def split_dataframe(df, row_index):
 
 # 假设 df_10_m 是你的原始 DataFrame
 # 使用函数来分割 DataFrame
-df_10_m_first, df_10_m_second = split_dataframe(df_10_m, 1359)  # 注意：因为是基于0的索引，所以这里使用1359代表第1360行
+argmax_indices = df_10_m.index[df_10_m['Kernel Name'].str.contains('ArgMax', na=False)].tolist()[0] + 8
+df_10_m_first, df_10_m_second = split_dataframe(df_10_m, argmax_indices)  # 注意：因为是基于0的索引，所以这里使用1359代表第1360行
 
 filtered_df_first = select_kernels_and_save(df_10_m_first, df_fp16, workspace_path, Project_name+"_first")
 filtered_df_second = select_kernels_and_save(df_10_m_second, df_fp16, workspace_path, Project_name+"_second", threshold=0.8)
