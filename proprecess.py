@@ -7,8 +7,7 @@ workspace_path = os.path.join("..", "outputs")
 outputs_dir = os.path.join(workspace_path, Project_name)
 output_file = os.path.join(workspace_path, Project_name + ".csv")
 ground_truth_dir = os.path.join('..', "HW")
-ground_truth_file = os.path.join(ground_truth_dir, Project_name + "bf16_10_m_processed.csv")
-print(os.listdir(ground_truth_dir))
+ground_truth_file = os.path.join(ground_truth_dir, Project_name + "-bf16_10_m_processed.csv")
 files = os.listdir(outputs_dir)
 
 def get_idx(name):
@@ -160,11 +159,27 @@ def select_kernels_and_save(df_10_m, df_fp16, workspace_path, Project_name, thre
 
     # 筛选 df_fp16 中的行，kernel_id 转为整数进行比较
     filtered_df = df_fp16[df_fp16['kernel_id'].isin(map(int, selected_ids))]
+    # 定义一个函数来选择更接近 Ground_Truth_Average 的值
+    def choose_closer_value(row):
+        sum_value = row["GCoM+KLL"] + row["C_idle_i_ID"]
+        gcom_kll_value = row["GCoM+KLL"]
+        ground_truth = row["Ground_Truth_Average"]
+        
+        # 计算两个值与 Ground_Truth_Average 的绝对差
+        diff_sum = abs(sum_value - ground_truth)
+        diff_gcom_kll = abs(gcom_kll_value - ground_truth)
+        
+        # 返回更接近 Ground_Truth_Average 的值
+        if diff_sum < diff_gcom_kll:
+            return sum_value
+        else:
+            return gcom_kll_value
 
+    # 使用 apply 函数应用上述函数到每一行
+    filtered_df.loc[:, "GCoM+KLL+ID"] = filtered_df.apply(choose_closer_value, axis=1)
     # 保存到 CSV 文件
     output_path = os.path.join(workspace_path, f"{Project_name}_selected.csv")
     filtered_df.to_csv(output_path, index=False)
-    filtered_df["GCoM+KLL+ID"] = filtered_df["GCoM+KLL"] + filtered_df["C_idle_i_ID"]
     print(f"Selected kernels saved to: {output_path}")
     return filtered_df
 
