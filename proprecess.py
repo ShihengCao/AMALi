@@ -7,7 +7,7 @@ workspace_path = os.path.join("..", "outputs")
 outputs_dir = os.path.join(workspace_path, Project_name)
 output_file = os.path.join(workspace_path, Project_name + ".csv")
 ground_truth_dir = os.path.join('..', "HW")
-ground_truth_file = os.path.join(ground_truth_dir, Project_name + "-bf16_10_m_processed.csv")
+ground_truth_file = os.path.join(ground_truth_dir, Project_name + "_10_m_processed.csv")
 files = os.listdir(outputs_dir)
 
 def get_idx(name):
@@ -207,8 +207,11 @@ def split_dataframe(df, row_index):
     return df_first, df_second
 
 # 假设 df_10_m 是你的原始 DataFrame
-# 使用函数来分割 DataFrame
-argmax_indices = df_10_m.index[df_10_m['Kernel Name'].str.contains('ArgMax', na=False)].tolist()[0] + 8
+argmax_indices = df_10_m.index[df_10_m['Kernel Name'].str.contains('ArgMax', na=False)].tolist()
+if len(argmax_indices) > 0:
+    argmax_indices = argmin_indices[0] + 8
+else:
+    argmax_indices = len(df_10_m) - 1
 df_10_m_first, df_10_m_second = split_dataframe(df_10_m, argmax_indices)  # 注意：因为是基于0的索引，所以这里使用1359代表第1360行
 
 filtered_df_first = select_kernels_and_save(df_10_m_first, df_fp16, workspace_path, Project_name+"_first")
