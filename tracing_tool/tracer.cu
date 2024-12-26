@@ -129,7 +129,6 @@ void nvbit_at_init() {
     if(key==1){
         cout << "error loading kernel_ids.txt" << std::endl;
     }
-    // printf("kernel_ids_open");
     app_config_fp.open("app_config.py");
     
     if (mkdir("memory_traces", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == -1){

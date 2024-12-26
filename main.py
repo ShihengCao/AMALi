@@ -237,12 +237,34 @@ def main():
     ##############################
     ## app configiguration file ##
     ##############################
+    # 构建 app_config.py 的完整路径
+    app_config_path = os.path.join(app_path, 'app_config.py')
+
+    # 使用 importlib 动态加载模块
+    spec = importlib.util.spec_from_file_location("app_config", app_config_path)
+    app_config = importlib.util.module_from_spec(spec)
+
     try:
-        import app_config
-    except:
-        print(str("\n[Error]\n")+str("<app_config.py>> file doesn't exist in \"")+app_name+str("\" directory"))
+        spec.loader.exec_module(app_config)
+        # 打印 app_config.py 的绝对路径
+        print(f"app_config module path: {os.path.abspath(app_config_path)}")
+    except FileNotFoundError:
+        print(f"\n[Error]\n<app_config.py> file doesn't exist in \"{app_name}\" directory")
         sys.exit(1)
+    except Exception as e:
+        print(f"\n[Error]\nFailed to import <app_config.py>: {e}")
+        sys.exit(1)
+        
+    # try:
+    #     import app_config
+    #     # 打印 app_config.py 的绝对路径
+    #     print(f"app_config module path: {app_config.__file__}")
+    # except:
+    #     print(str("\n[Error]\n")+str("<app_config.py>> file doesn't exist in \"")+app_name+str("\" directory"))
+    #     sys.exit(1)
     
+    # 打印 sys.path 以便查看搜索路径
+    # print(f"sys.path: {sys.path}")
     # count = len(open("GCoM.out",'r').readlines())
 
     app_kernels_id = app_config.app_kernels_id
@@ -288,6 +310,7 @@ def main():
         simianEngine.run()
         simianEngine.exit()
     else:
+        print(len(kernels_info))
         gpuNode = GPUNode(gpu_configs.uarch, compute_capability.cc_configs, len(kernels_info))  
         print('+'+'-'*30)
         for i in range (len(kernels_info)):

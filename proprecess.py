@@ -7,7 +7,7 @@ workspace_path = os.path.join("..", "outputs")
 outputs_dir = os.path.join(workspace_path, Project_name)
 output_file = os.path.join(workspace_path, Project_name + ".csv")
 ground_truth_dir = os.path.join('..', "HW")
-ground_truth_file = os.path.join(ground_truth_dir, Project_name + "_10_m_processed.csv")
+ground_truth_file = os.path.join(ground_truth_dir, Project_name + "-bf16_10_m_processed.csv")
 files = os.listdir(outputs_dir)
 
 def get_idx(name):
@@ -71,7 +71,7 @@ def add_average_to_df(df, ground_truth_file):
     if 'kernel_id' not in df.columns:
         raise ValueError("DataFrame中缺少kernel_id列")
     # print(df['kernel_id'])
-    #print(df['kernel_id'].unique())
+    # print(df['kernel_id'].unique())
     df['kernel_id'] = df['kernel_id'].astype(int)
     
     # 确保Average列存在于ground_truth_file中
@@ -209,7 +209,7 @@ def split_dataframe(df, row_index):
 # 假设 df_10_m 是你的原始 DataFrame
 argmax_indices = df_10_m.index[df_10_m['Kernel Name'].str.contains('ArgMax', na=False)].tolist()
 if len(argmax_indices) > 0:
-    argmax_indices = argmin_indices[0] + 8
+    argmax_indices = argmax_indices[0] + 8
 else:
     argmax_indices = len(df_10_m) - 1
 df_10_m_first, df_10_m_second = split_dataframe(df_10_m, argmax_indices)  # 注意：因为是基于0的索引，所以这里使用1359代表第1360行

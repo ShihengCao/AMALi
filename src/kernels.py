@@ -88,6 +88,7 @@ class Kernel():
 
 	def kernel_call_GCoM(self, data, name, num):
 		pred_out = self.pred_out
+		print(pred_out)
 		tic = time.time()
 
 		sass_parser = importlib.import_module("ISA_parser.sass_parser")

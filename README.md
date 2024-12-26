@@ -4,13 +4,13 @@ PPT-GPU is a scalable and flexible framework to predict the performance of GPUs 
 
 ```bash
 # trace apps
-LD_PRELOAD=/root/ana_model/tracing_tool/tracer.so python example_chat_completion.py
+LD_PRELOAD=/staff/Analytical_model/tracing_tool/tracer.so python example_chat_completion.py
 # run analysis
 python main.py --app ../RTX3090_apps/mini-Llama2/ --config RTX3090 --useMPI 0 --kernel 13
 # run with mpi
 PATH=/home/caosh/mpich-install/bin:$PATH ; export PATH
 mpiexec -n 3 python main.py --app ../RTX3090_apps/Llama2-4096-32-258-fp16/ --config RTX3090 --kernel 71
-python main.py --app ../A100_apps/llama3-8b-8190/ --config A100 --kernel 1
+python main.py --app ../A100_apps/llama3-8b-2048/ --config A100 --kernel 1
 nohup python main.py --app ../A100_apps/llama3-8b-8190/ --config A100 --kernel 172 > kernel172_1014.log 2>&1 &
 # run proprecessing
 python proprecess.py Llama2-4096-32-130-fp16_
