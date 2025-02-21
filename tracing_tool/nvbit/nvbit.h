@@ -1,27 +1,31 @@
-/* Copyright (c) 2019, NVIDIA CORPORATION. All rights reserved.
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2019 NVIDIA CORPORATION & AFFILIATES.
+ * All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *  * Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *  * Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- *  * Neither the name of NVIDIA CORPORATION nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
+ * modification, are permitted provided that the following conditions are met:
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ``AS IS'' AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
- * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ * contributors may be used to endorse or promote products derived from
+ * this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -41,7 +45,7 @@
 #include "cuda.h"
 #include "generated_cuda_meta.h"
 
-#define NVBIT_VERSION "1.5.5"
+#define NVBIT_VERSION "1.7.3"
 
 /* Instruction class returned by the NVBit inspection API nvbit_get_instrs */
 class Instr {
@@ -85,9 +89,10 @@ class Instr {
     /* prints one line instruction with idx, offset, sass */
     void print(const char* prefix = NULL);
 
-  private:
     /* Constructor used internally by NVBit */
     Instr(const char* sass);
+
+  private:
     /* Reserved variable used internally by NVBit */
     const void* reserved;
     friend class Nvbit;
@@ -107,6 +112,19 @@ typedef struct {
     /* vector of basic block */
     std::vector<basic_block_t*> bbs;
 } CFG_t;
+
+typedef struct {
+    uint32_t blockDimX;
+    uint32_t blockDimY;
+    uint32_t blockDimZ;
+    uint32_t gridDimX;
+    uint32_t gridDimY;
+    uint32_t gridDimZ;
+
+    uint32_t shmem_static_nbytes;
+    uint32_t shmem_dynamic_nbytes;
+    uint32_t num_registers;
+} func_config_t;
 
 /*
  * callback definitions as enumerated in tools_cuda_api_meta.h
@@ -134,12 +152,23 @@ void nvbit_at_init();
 void nvbit_at_term();
 
 /* This function is called as soon as a GPU context is started and it should
- * contain any code that we would like to execute at that moment. */
+ * contain code that we would like to execute at that moment.
+ * NOTE: No CUDA memory allocation should be done at this time, or your tool
+ * will deadlock. Please allocate CUDA memory in nvbit_tool_init(). If your
+ * tool causes deadlocks, remove CUDA API calls one by one to debug. Also,
+ * try to relocate the offending CUDA API calls to nvbit_tool_init() to see
+ * if it helps. */
 void nvbit_at_ctx_init(CUcontext ctx);
 
 /* This function is called as soon as the GPU context is terminated and it
  * should contain any code that we would like to execute at that moment. */
 void nvbit_at_ctx_term(CUcontext ctx);
+
+/* This function is called before first kernel launch. You could initialize
+ * data of your tool at this moment.
+ * NOTE: If your tool causes deadlocks, remove CUDA API calls one by one to
+ * debug. */
+void nvbit_tool_init(CUcontext ctx);
 
 /* This is the function called every beginning (is_exit = 0) and
  * end (is_exit = 1) of a CUDA driver call.
@@ -155,6 +184,12 @@ void nvbit_at_ctx_term(CUcontext ctx);
 void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                          const char* event_name, void* params,
                          CUresult* pStatus);
+
+/* This is the function called when a graph node is to be launched. Currently,
+ * it is mainly used with nvbit_set_at_launch() to set tool argument
+ * to each node if each node uses different tool argument. */
+void nvbit_at_graph_node_launch(CUcontext ctx, CUfunction func, CUstream stream,
+                                uint64_t launch_handle);
 
 /*********************************************************************
  *
@@ -201,6 +236,9 @@ uint64_t nvbit_get_shmem_base_addr(CUcontext cuctx);
  * local mem range is [shmem_base_addr, shmem_base_addr+16MB) and
  * the base address is 16MB aligned.  */
 uint64_t nvbit_get_local_mem_base_addr(CUcontext cuctx);
+
+/* Get function configurations. */
+void nvbit_get_func_config(CUfunction func, func_config_t *config);
 
 /*********************************************************************
  *
@@ -274,12 +312,14 @@ void nvbit_add_call_arg_ureg_val(const Instr* instr, int reg_num,
                                  bool is_variadic_arg = false);
 
 /* Add uint32_t argument to last injected call, 32-bit at launch value at offset
- * "offset", set at launch time with nvbit_set_at_launch */
+ * "offset", set at launch time with nvbit_set_at_launch. offset can only be
+ * 0 or 4 */
 void nvbit_add_call_arg_launch_val32(const Instr* instr, int offset,
                                      bool is_variadic_arg = false);
 
 /* Add uint64_t argument to last injected call, 64-bit at launch value at offset
- * "offset", set at launch time with nvbit_set_at_launch */
+ * "offset", set at launch time with nvbit_set_at_launch. offset can only be
+ * 0 */
 void nvbit_add_call_arg_launch_val64(const Instr* instr, int offset,
                                      bool is_variadic_arg = false);
 
@@ -327,10 +367,13 @@ __device__ __noinline__ void nvbit_write_upred_reg(int32_t reg_val);
 void nvbit_enable_instrumented(CUcontext ctx, CUfunction func, bool flag,
                                bool apply_to_related = true);
 
-/* Set arguments at launch time, that will be loaded on input argument of
- * the instrumentation function */
-void nvbit_set_at_launch(CUcontext ctx, CUfunction func, void* buf,
-                         uint32_t nbytes);
+/* Set a uint64_t parameter value at launch time, that will be loaded on input
+ * argument of the instrumentation function. During graph node launch (in
+ * nvbit_at_graph_node_launch()), you need to provide custream and
+ * launch_handle to set tool argument. */
+void nvbit_set_at_launch(CUcontext ctx, CUfunction func, uint64_t param_val,
+                         CUstream custream = nullptr,
+                         uint64_t launch_handle = 0);
 
 /* Notify nvbit of a pthread used by the tool, this pthread will not
  * trigger any call backs even if executing CUDA events of kernel launches.

@@ -1,27 +1,31 @@
-/* Copyright (c) 2019, NVIDIA CORPORATION. All rights reserved.
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2019 NVIDIA CORPORATION & AFFILIATES.
+ * All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *  * Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *  * Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- *  * Neither the name of NVIDIA CORPORATION nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
+ * modification, are permitted provided that the following conditions are met:
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS ``AS IS'' AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
- * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ * contributors may be used to endorse or promote products derived from
+ * this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -55,10 +59,14 @@ enum class MemorySpace {
     GLOBAL_TO_SHARED,  // read from global memory then write to shared memory
     SURFACE,   // surface memory operation
     TEXTURE,   // texture memory operation
+    DISTRIBUTED_SHARED,// distributed shared memory operation
+    TENSOR_MEM,        // placeholder for tensor memory operation
+    TENSOR_CORE_MEM,   // tensor core memory 
 };
 constexpr const char* MemorySpaceStr[] = {
     "NONE", "LOCAL", "GENERIC", "GLOBAL", "SHARED", "CONSTANT",
     "GLOBAL_TO_SHARED", "SURFACE", "TEXTURE",
+    "DISTRIBUTED_SHARED", "TENSOR_MEM", "TENSOR_CORE_MEM"
 };
 
 enum class OperandType {
@@ -70,12 +78,15 @@ enum class OperandType {
     UPRED,
     CBANK,
     MREF,
-    GENERIC
+    GENERIC,
+    MEM_DESC
 };
 
 constexpr const char* OperandTypeStr[] = {
     "IMM_UINT64", "IMM_DOUBLE", "REG",  "PRED",   "UREG",
-    "UPRED",      "CBANK",      "MREF", "GENERIC"};
+    "UPRED",      "CBANK",      "MREF", "GENERIC",
+    "MEM_DESC"
+};
 
 enum class RegModifierType {
     NO_MOD = 0,
@@ -141,12 +152,17 @@ typedef struct {
             RegModifierType ur_mod;
             bool has_imm;
             int imm;
+            bool has_desc;
+            int desc_ureg_num;
         } mref;
 
         struct {
             char array[MAX_CHARS];
         } generic;
 
+        struct {
+            int ureg_num;
+        } mem_desc;
     } u;
 } operand_t;
 };

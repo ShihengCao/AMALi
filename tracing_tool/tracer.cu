@@ -127,7 +127,10 @@ void nvbit_at_init() {
     printf("%s\n", pad.c_str());
     int key = load_kernel_ids();
     if(key==1){
-        cout << "error loading kernel_ids.txt" << std::endl;
+        cout << "Warning ! Error loading kernel_ids.txt" << std::endl;
+        cout << "Warning ! Trace first 300 kernel by default" << std::endl;
+        for(int i=0;i<300;i++)
+            kernel_ids_to_analyze.insert(i);
     }
     app_config_fp.open("app_config.py");
     
@@ -565,6 +568,11 @@ void *recv_thread_fun(void *) {
     return NULL;
 }
 
+// void nvbit_tool_init(CUcontext ctx) {
+//     // recv_thread_done = RecvThreadState::WORKING;
+//     // recv_thread_started = true;
+//     ctx->channel_host.init(0, CHANNEL_SIZE, &channel_dev, NULL);
+// }
 
 void nvbit_at_ctx_init(CUcontext ctx) {
     recv_thread_started = true;
