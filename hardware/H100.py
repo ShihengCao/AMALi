@@ -12,8 +12,8 @@
 
 uarch = {
 
-    "gpu_name"                          :  "A100",
-    "gpu_arch"                          :  "Tesla_Ampere", #This name has to match one of the files in ISA module
+    "gpu_name"                          :  "H100",
+    "gpu_arch"                          :  "Hopper", #This name has to match one of the files in ISA module
     
     # compute capabilty defines the physical limits of GPUs 
     # options available:
@@ -23,14 +23,15 @@ uarch = {
     #   - Volta: 70 
     #   - Turing: 75
     #   - Ampere: 80, 86, 89
-    "compute_capabilty"                 :  80,
+    #   - Hopper: 90
+    "compute_capabilty"                 :  90,
     
     # base GPU clock speed in HZ                
-    "clockspeed"                        :  1065 * 10**6, # [1]
+    "clockspeed"                        :  1755 * 10**6, # [1]
     "num_sub_cores"                     :  4,
     "num_L1_cache_banks"                :  4,
     # streaming multiprocessors (SMs)
-    "num_SMs"                           :  108, # [4]
+    "num_SMs"                           :  114, # [4]
     # represents [INT] units; ** THIS UNIT IS IN VOLTA & TURING & AMPERE ONLY ** 
     # responsible for int instructions
     "num_INT_units_per_SM"              :  64, # [4]
@@ -39,14 +40,14 @@ uarch = {
     "num_SP_units_per_SM"               :  128, # [4]
     # represents [FP64] units in volta & Turing
     # responsible for Double-Precision floating point instructions
-    "num_DP_units_per_SM"               :  2, # [4]
+    "num_DP_units_per_SM"               :  64, # [4]
     # special function unites per SM
     # responsible for transcendental instructions  
     "num_SF_units_per_SM"               :  16, # [4]
     # tensor core units per SM               
     "num_TC_units_per_SM"               :  4, # [4]
     # load & store units per SM
-    "num_LDS_units_per_SM"              :  16, # [2]
+    "num_LDS_units_per_SM"              :  32, # [2]
     # branch units per SM; ** THIS UNIT IS IN VOLTA & TURING ONLY ** 
     # to handle and execute branch instructions             
     "num_BRA_units_per_SM"              :  4,
@@ -65,23 +66,23 @@ uarch = {
     # SMEM size can be: 64KB, 32KB of size
     # default config is 32KB for L1 cache size and 96KB for SMEM
     # ** Sizes are in Byte **
-    "l1_cache_size"                     :  128 * 1024,
+    "l1_cache_size"                     :  192 * 1024,
     "shared_mem_size"                   :  64 * 1024,   
     "l1_cache_line_size"                :  32,  # 128B actually but 32B per sector              
     "l1_cache_associativity"            :  64,
-    "l2_cache_size"                     :  40 * 1024*1024, # [2]
+    "l2_cache_size"                     :  50 * 1024*1024, # [2]
     "l2_cache_line_size"                :  32,                 
     "l2_cache_associativity"            :  16,  
-    "l1_cache_bandwidth"                :  110.507, #(byte/clk/SM) get from Accel-sim microbenchmark
+    "l1_cache_bandwidth"                :  113.06, #(byte/clk/SM) get from Accel-sim microbenchmark
 
     # L2 total size 6144 KB, each subpartition is 96 KB. This gives ~ 64 memory parition
     "num_l2_partitions"	                :  80,
     "num_dram_channels"	                :  40,
     # DRAM theoritical BW, measured through microbenchmarking
-    "dram_th_bandwidth"                 :  1940 * 10**9, #B/s [1]
+    "dram_th_bandwidth"                 :  2009 * 10**9, #B/s [1]
     # base GPU DRAM clock speed in HZ 
     # Max clock speed reported in paper is 5001 and in nvidia-smi -q -d CLOCK is 7000         
-    "dram_clockspeed"                   :  1512 * 10**6, # [1]
+    "dram_clockspeed"                   :  1593 * 10**6, # [1]
     # NOC theoritical BW, measured through microbenchmarking
     "noc_th_bandwidth"                  :  1200 * 10**9, #B/s
 

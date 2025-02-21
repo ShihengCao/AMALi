@@ -1,4 +1,4 @@
-##############################################################################
+﻿##############################################################################
 # SASS instructions adpoted from:
 # - https://docs.nvidia.com/cuda/cuda-binary-utilities/index.html
 
@@ -18,29 +18,26 @@ units_latency = {
     "iALU"              :   4,
     "fALU"              :   4,
     "hALU"              :   4,
-    "dALU"              :   4,
+    "dALU"              :   8,
 
     "SFU"               :  23,
     "dSFU"              :  16,
     # for tensor core we use FMA/cycle instead and will calculate the latency later
-    # "hTCU"              :  256, # accumulator FP16
-    # "fTCU"              :  256, # accumulator FP32
-    # "bTCU"              :  256, # accumulator BF16
-    "hTCU"              :  512, # accumulator FP16
-    "fTCU"              :  512, # accumulator FP32
-    "bTCU"              :  512, # accumulator BF16
-    "dTCU"              :  64,
+    "iTCU"              :  320,
+    "hTCU"              :  320, # accumulator FP16
+    "fTCU"              :  320, # accumulator FP32
+    "dTCU"              :  320,
 
     "BRA"               :  4,
     #Memory Units Latencies
-    "dram_mem_access"   :   290,
-    "l1_cache_access"   :   37,
-    "l2_cache_access"   :   224,
-    "local_mem_access"  :   290,
-    "const_mem_access"  :   290,
+    "dram_mem_access"   :   194,
+    "l1_cache_access"   :   40,
+    "l2_cache_access"   :   228,
+    "local_mem_access"  :   194,
+    "const_mem_access"  :   194,
     "shared_mem_ld"     :   23,
     "shared_mem_st"     :   19,# ld 23 st 19
-    "tex_mem_access"    :   290,
+    "tex_mem_access"    :   194,
     "tex_cache_access"  :   86,
     "atomic_operation"  :   245,
     #Kernel_launch_ovhd get from Accel-sim benchmark
@@ -61,14 +58,13 @@ initial_interval = {
 
     "LDST"              :   32 / 32,
     # we will not use initial_interval for TCU for now
-    # "bTCU"              :   256, # compute BF16 accumulator FP32
-    # "hTCU"              :   256, # accumulator FP16
-    # "fTCU"              :   256, # accumulator FP32
-    # "bTCU"              :   320, # compute BF16 accumulator FP32
-    # "hTCU"              :   320, # accumulator FP16
-    # "fTCU"              :   320, # accumulator FP32
+    #"iTCU"              :   320,
+    #"hTCU"              :   320, # accumulator FP16 fma/clk/tensor core
+    #"fTCU"              :   320, # accumulator FP32
+    #"dTCU"              :   320, # Ampere not support double precision, this only support in Tesla_Ampere
     "BRA"               :   32 / 32,
 }
+
 sass_isa = {
 
     # Integer Instructions
@@ -98,6 +94,11 @@ sass_isa = {
     "SHR"               : "iALU",
     "VABSDIFF"          : "iALU",
     "VABSDIFF4"         : "iALU",
+    "VHMNMX"            : "iALU",
+    "VIADD"             : "iALU",
+    "VIADDMNMX"         : "iALU",
+    "VIMNMX"            : "iALU",
+    "VIMXMX3"           : "iALU",
     # "CCTL"              : "iALU",
     # Single-Precision Floating Instructions
     "FADD"              : "fALU",
@@ -117,6 +118,7 @@ sass_isa = {
     "HADD2_32I"         : "hALU",
     "HFMA2"             : "hALU",
     "HFMA2_32I"         : "hALU",
+    "HMNMX2"            : "hALU",
     "HMUL2"             : "hALU",
     "HMUL2_32I"         : "hALU",
     "HSET2"             : "hALU",
@@ -131,8 +133,7 @@ sass_isa = {
     #Tensor Core
     "IMMA"              : "iTCU",
     "HMMA"              : "hTCU",
-    "HMNMX2"            : "hTCU", # new !!
-    "BMMA"              : "iTCU", # new !!
+    "BMMA"              : "iTCU", 
     "DMMA"              : "dTCU",
     # Conversion Instructions
     "F2F"               : "iALU",
@@ -140,14 +141,14 @@ sass_isa = {
     "I2F"               : "iALU",
     "I2I"               : "iALU",
     "I2IP"              : "iALU",
-    "I2FP"              : "iALU",# new !!
-    "F2IP"              : "iALU",# new !!
-    "F2FP"              : "iALU",# new !!
+    "I2FP"              : "iALU",
+    "F2IP"              : "iALU",
+    "F2FP"              : "iALU",
     "FRND"              : "iALU",
     # Movement Instructions
     "MOV"               : "iALU",
     "MOV32I"            : "iALU",
-    "MOVM"              : "iALU",# new !!
+    "MOVM"              : "iALU",
     "PRMT"              : "iALU",
     "SEL"               : "iALU",
     "SGXT"              : "iALU",
@@ -159,12 +160,12 @@ sass_isa = {
     "R2P"               : "iALU",
    #Uniform Datapath Instructions
     "R2UR"              : "iALU",
-    "REDUX"             : "iALU",# new !!
+    "REDUX"             : "iALU",
     "S2UR"              : "iALU",
     "UBMSK"             : "iALU",
     "UBREV"             : "iALU",
     "UCLEA"             : "iALU",
-    "UF2FP"             : "iALU",# new !!
+    "UF2FP"             : "iALU",
     "UFLO"              : "iALU",
     "UIADD3"            : "iALU",
     "UIADD3.64"         : "dALU",
@@ -189,7 +190,20 @@ sass_isa = {
     "USHL"              : "iALU",
     "USHR"              : "iALU",
     "VOTEU"             : "iALU",
+    # new !! warpgroup instructions
+    "BGMMA"             : "fTCU",
+    "HGMMA"             : "fTCU",
+    "IGMMA"             : "iTCU",
+    "QGMMA"             : "fTCU",
+    # new TMA instructions
+    # "UBLKCP"            : "LDST",
+
     #Control Instructions
+    "WARPGROUP"         : "BRA", # new
+    "WARPGROUPSET"      : "BRA", # new
+    "UCGABAR_ARV"       : "BRA", # new !!
+    "UCGABAR_WAIT"      : "BRA", # new !!
+    "ACQBULK"           : "BRA",
     "BMOV"              : "BRA",
     "BPT"               : "BRA",
     "BRA"               : "BRA",
@@ -199,15 +213,19 @@ sass_isa = {
     "BSSY"              : "BRA",
     "BSYNC"             : "BRA",
     "CALL"              : "BRA",
+    "CGAERRBAR"         : "BRA",
+    "ELECT"             : "BRA",
+    "ENDCOLLECTIVE"     : "BRA",
     "EXIT"              : "BRA",
     "JMP"               : "BRA",
     "JMX"               : "BRA",
-    "JMXU"              : "BRA",# new !!
+    "JMXU"              : "BRA",
     "KILL"              : "BRA",
     "NANOSLEEP"         : "BRA",
+    "PREEXIT"           : "BRA",# new ~~
     "RET"               : "BRA",
     "RPCMOV"            : "BRA",
-    "RTT"               : "BRA",
+    # "RTT"               : "BRA",
     "WARPSYNC"          : "BRA",
     "YIELD"             : "BRA",
     # Miscellaneous Instructions
