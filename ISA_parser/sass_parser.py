@@ -263,7 +263,11 @@ def parse(units_latency, sass_instructions, sass_path, logger):
         return np.array(flattened_warps), warp_info
 
     def get_original_sm_and_warp_ids(representative_indices, warp_info):
-        return warp_info[representative_indices]
+        if isinstance(representative_indices, list):
+            return [warp_info[i] for i in representative_indices]  # 列表情况
+        else:
+            return warp_info[representative_indices]  # 单个值的情况
+
 
     # 假设task_list已经定义
     kmeans_features, warp_info = transform_task_list(task_list, functional_units_list)
@@ -273,6 +277,16 @@ def parse(units_latency, sass_instructions, sass_path, logger):
 
     # 使用示例
     original_sm_and_warp_ids = get_original_sm_and_warp_ids(representative_index, warp_info)
+
+    # all_center_warp_sm_and_warp_ids = get_original_sm_and_warp_ids(all_center_warp_idx_list[:], warp_info)
+    # for sm_id, warp_id in all_center_warp_sm_and_warp_ids:
+    #     print(f"Center warp - SM ID: {sm_id}, Warp ID: {warp_id}")
+    #     print(f"Length of task_list of center warp: {len(task_list[sm_id][warp_id])}")
+    #     warp_vector = task_list[sm_id][warp_id]
+    #     # 统计每个functional unit的出现次数
+    #     unit_counter = Counter(item[0] for item in warp_vector if item)
+    #     print(unit_counter)
+    #     print()
 
     print(f"Representative warp - SM ID: {original_sm_and_warp_ids[0]}, Warp ID: {original_sm_and_warp_ids[1]}")
     print(f"Length of task_list of representative warp: {len(task_list[original_sm_and_warp_ids[0]][original_sm_and_warp_ids[1]])}")

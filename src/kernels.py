@@ -88,7 +88,6 @@ class Kernel():
 
 	def kernel_call_GCoM(self, data, name, num):
 		pred_out = self.pred_out
-		print(pred_out)
 		tic = time.time()
 
 		sass_parser = importlib.import_module("ISA_parser.sass_parser")
@@ -113,8 +112,8 @@ class Kernel():
 		# AMAT: Average Memory Access Time (Cycles)
 		if memory_stats_dict["gmem_tot_reqs"] != 0:
 			l1_parallelism = self.acc.num_L1_cache_banks // self.acc.num_sub_cores # bank number per sub-core in L1 data cache
-			l2_parallelism = int(memory_stats_dict["gmem_tot_diverg"])
-			dram_parallelism = int(memory_stats_dict["gmem_tot_diverg"])
+			l2_parallelism = max(int(memory_stats_dict["gmem_tot_diverg"]),1)
+			dram_parallelism = max(int(memory_stats_dict["gmem_tot_diverg"]),1)
 			# l2_parallelism = min(int(memory_stats_dict["gmem_tot_diverg"]),self.acc.num_l2_partitions)
 			# dram_parallelism = min(int(memory_stats_dict["gmem_tot_diverg"]), self.acc.num_dram_channels)
 			# l2_parallelism = int(memory_stats_dict["gmem_tot_diverg"]) if memory_stats_dict["gmem_tot_diverg"] < self.acc.num_l2_partitions else self.acc.num_l2_partitions
@@ -159,6 +158,7 @@ class Kernel():
 		pred_out.update(memory_stats_dict)
 		###### ---- compute performance predictions ---- ######
 		tic = time.time()
+		print(pred_out)
 		# spawning all SMs which includes several warps
 		SM_block_list = []
 		total_warp_num = 0
