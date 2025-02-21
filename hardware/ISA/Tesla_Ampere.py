@@ -23,12 +23,12 @@ units_latency = {
     "SFU"               :  23,
     "dSFU"              :  16,
     # for tensor core we use FMA/cycle instead and will calculate the latency later
-    # "hTCU"              :  256, # accumulator FP16
-    # "fTCU"              :  256, # accumulator FP32
-    # "bTCU"              :  256, # accumulator BF16
-    "hTCU"              :  512, # accumulator FP16
-    "fTCU"              :  512, # accumulator FP32
-    "bTCU"              :  512, # accumulator BF16
+    "hTCU"              :  256, # accumulator FP16
+    "fTCU"              :  256, # accumulator FP32
+    "bTCU"              :  256, # accumulator BF16
+    # "hTCU"              :  512, # accumulator FP16
+    # "fTCU"              :  512, # accumulator FP32
+    # "bTCU"              :  512, # accumulator BF16
     "dTCU"              :  64,
 
     "BRA"               :  4,
