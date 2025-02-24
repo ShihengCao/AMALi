@@ -121,3 +121,6 @@ cmake-build-*/
 
 # File-based project format
 *.iws
+
+logs/
+outputs/

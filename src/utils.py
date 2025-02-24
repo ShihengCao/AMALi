@@ -138,7 +138,7 @@ class Logger():
         self.pred_out = pred_out
         self.is_active = is_active
         # mkdir if target dir is not exist
-        output_dir = os.path.join("..","logs")
+        output_dir = os.path.join(".","logs")
         project_name = pred_out["app_path"].split("/")[-2]
         project_output_dir = os.path.join(output_dir,project_name)
         # check output_dir is exist or not
