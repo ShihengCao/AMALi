@@ -36,10 +36,10 @@ uarch = {
     "num_INT_units_per_SM"              :  64, # [4]
     # represents [FP32] units 
     # responsible for Single-Precision floating point instructions 
-    "num_SP_units_per_SM"               :  128, # [4]
+    "num_SP_units_per_SM"               :  64, # [4]
     # represents [FP64] units in volta & Turing
     # responsible for Double-Precision floating point instructions
-    "num_DP_units_per_SM"               :  2, # [4]
+    "num_DP_units_per_SM"               :  32, # [4]
     # special function unites per SM
     # responsible for transcendental instructions  
     "num_SF_units_per_SM"               :  16, # [4]

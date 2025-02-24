@@ -254,24 +254,12 @@ def main():
     except Exception as e:
         print(f"\n[Error]\nFailed to import <app_config.py>: {e}")
         sys.exit(1)
-        
-    # try:
-    #     import app_config
-    #     # 打印 app_config.py 的绝对路径
-    #     print(f"app_config module path: {app_config.__file__}")
-    # except:
-    #     print(str("\n[Error]\n")+str("<app_config.py>> file doesn't exist in \"")+app_name+str("\" directory"))
-    #     sys.exit(1)
-    
-    # 打印 sys.path 以便查看搜索路径
-    # print(f"sys.path: {sys.path}")
-    # count = len(open("GCoM.out",'r').readlines())
 
     app_kernels_id = app_config.app_kernels_id
     app_output_dir = app_name.split('/')[-2]
     # if ../outputs not exist then make it
-    if not os.path.exists("../outputs"):
-        os.makedirs("../outputs")
+    if not os.path.exists("./outputs"):
+        os.makedirs("./outputs")
     if all_kernels == True:    
         if app_output_dir in os.listdir("../outputs"):
             complete_files = os.listdir(os.path.join("../outputs",app_output_dir))
