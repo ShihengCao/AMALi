@@ -149,7 +149,7 @@ def main():
             if current_argument in ("-h", "--help"):
                 usage()
                 sys.exit(2)
-    elif len(argument_list) > 11 or len(argument_list) < 5:
+    elif len(argument_list) > 11 or len(argument_list) < 2:
         print("\n[Error]\nincorrect number arguments")
         usage()
         sys.exit(1)
@@ -237,24 +237,36 @@ def main():
     ##############################
     ## app configiguration file ##
     ##############################
+    # 构建 app_config.py 的完整路径
+    app_config_path = os.path.join(app_path, 'app_config.py')
+
+    # 使用 importlib 动态加载模块
+    spec = importlib.util.spec_from_file_location("app_config", app_config_path)
+    app_config = importlib.util.module_from_spec(spec)
+
     try:
-        import app_config
-    except:
-        print(str("\n[Error]\n")+str("<app_config.py>> file doesn't exist in \"")+app_name+str("\" directory"))
+        spec.loader.exec_module(app_config)
+        # 打印 app_config.py 的绝对路径
+        print(f"app_config module path: {os.path.abspath(app_config_path)}")
+    except FileNotFoundError:
+        print(f"\n[Error]\n<app_config.py> file doesn't exist in \"{app_name}\" directory")
         sys.exit(1)
-    
-    # count = len(open("GCoM.out",'r').readlines())
+    except Exception as e:
+        print(f"\n[Error]\nFailed to import <app_config.py>: {e}")
+        sys.exit(1)
 
     app_kernels_id = app_config.app_kernels_id
     app_output_dir = app_name.split('/')[-2]
     # if ../outputs not exist then make it
-    if not os.path.exists("../outputs"):
-        os.makedirs("../outputs")
+    if not os.path.exists("./outputs"):
+        os.makedirs("./outputs")
     if all_kernels == True:    
-        if app_output_dir in os.listdir("../outputs"):
-            complete_files = os.listdir(os.path.join("../outputs",app_output_dir))
+        if app_output_dir in os.listdir("./outputs"):
+            complete_files = os.listdir(os.path.join("./outputs",app_output_dir))
             for file in complete_files:
                 cur_id = int(file.split('_')[0])
+                if cur_id not in app_kernels_id:
+                    continue
                 app_kernels_id.remove(cur_id)
         for kernel_id in app_kernels_id:
             kernels_info.append(get_current_kernel_info(str(kernel_id), app_name, app_path, app_config, log))
@@ -286,6 +298,7 @@ def main():
         simianEngine.run()
         simianEngine.exit()
     else:
+        print(f'Number of Kernels in current app is: {len(kernels_info)}')
         gpuNode = GPUNode(gpu_configs.uarch, compute_capability.cc_configs, len(kernels_info))  
         print('+'+'-'*30)
         for i in range (len(kernels_info)):

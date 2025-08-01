@@ -1,4 +1,0 @@
-==1055== NVPROF is profiling process 1055, command: python test.py
-==1055== Profiling application: python test.py
-==1055== Profiling result:
-No events/metrics were profiled.

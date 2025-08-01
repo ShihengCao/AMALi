@@ -1,5 +1,5 @@
 NVCC=nvcc -ccbin=$(CXX) -D_FORCE_INLINES
-ARCH=80
+ARCH?=80
 
 NVCC_VER_REQ=10.1
 NVCC_VER=$(shell $(NVCC) --version | grep release | cut -f2 -d, | cut -f3 -d' ')

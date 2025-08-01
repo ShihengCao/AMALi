@@ -1,15 +1,18 @@
-# PPT-GPU: Performance Prediction Toolkit for GPUs
+# AMALI: An Analytical Model for Accurately Modeling LLM Inference on Modern GPUs
 
-PPT-GPU is a scalable and flexible framework to predict the performance of GPUs running general purpose workloads. PPT-GPU can use the virtual (PTX) or the native (SASS) ISAs without sacrificing accuracy, ease of use, or portability. The tool is currently focused on NVIDIA GPUs. We plan to extend our approach to model other vendors' GPUs such as AMD and Intel.
+AMALI: An Analytical Model for Accurately Modeling LLM Inference on Modern GPUs. AMALi solely focus on the native (SASS) ISAs without sacrificing accuracy, ease of use, or portability. The tool is currently focused on NVIDIA GPUs. We plan to extend our approach to model other vendors' GPUs such as AMD and Intel.
 
 ```bash
 # trace apps
-LD_PRELOAD=/root/ana_model/tracing_tool/tracer.so python example_chat_completion.py
+LD_PRELOAD=/staff/Analytical_model/tracing_tool/tracer.so python example_chat_completion.py
 # run analysis
 python main.py --app ../RTX3090_apps/mini-Llama2/ --config RTX3090 --useMPI 0 --kernel 13
 # run with mpi
 PATH=/home/caosh/mpich-install/bin:$PATH ; export PATH
 mpiexec -n 3 python main.py --app ../RTX3090_apps/Llama2-4096-32-258-fp16/ --config RTX3090 --kernel 71
+python main.py --app ../A100_apps/llama3-8b-2048/ --config A100 --kernel 1
+python main.py --app ~/Benchmarks/DeepBench-master/nvidia/ --config A100
+nohup python main.py --app ../A100_apps/llama3-8b-8190/ --config A100 --kernel 172 > kernel172_1014.log 2>&1 &
 # run proprecessing
 python proprecess.py Llama2-4096-32-130-fp16_
 python proprecess.py Llama2-4096-32-130-fp16_NTM
@@ -30,48 +33,14 @@ python proprecess.py Llama2-4096-32-130-fp16_NTM
                                          |---sub_core_block4
 ```
 
-- 添加参数
-  - use_MPI
-- 删除参数
-  - sass or ptx
-
-## Papers
-
-- For more information, check out the [SC' 21](https://doi.org/10.1145/3458817.3476221) paper ***(Hybrid, Scalable, Trace-Driven Performance Modeling of GPGPUs)***.
-
-    If you find this a helpful tool in your research, please consider citing as:
-
-    ```bash
-    @inproceedings{Arafa2021PPT-GPU,
-      author = {Y. {Arafa} and A. {Badawy} and A. {ElWazir} and A. {Barai} and A. {Eker} and G. {Chennupati} and N. {Santhi} and S. {Eidenbenz}},
-      title = {Hybrid, Scalable, Trace-Driven Performance Modeling of GPGPUs},
-      year = {2021},
-      booktitle = {Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis},
-      series = {SC '21}
-    }
-    ```
-
-- The memory model is descibed in the [ICS' 20](https://doi.org/10.1145/3392717.3392761) paper.
-
-     ```bash
-    @inproceedings{Arafa2020PPT-GPU-MEM,
-      author = {Y. {Arafa} and A. {Badawy} and G. {Chennupati} and A. {Barai} and N. {Santhi} and S. {Eidenbenz}},
-      title = {Fast, Accurate, and Scalable Memory Modeling of GPGPUs Using Reuse Profiles},
-      year = {2020},
-      booktitle = {Proceedings of the 34th ACM International Conference on Supercomputing},
-      series = {ICS '20}
-    }
-    ```
-
 ## Dependencies
 
 ### Simulation
 
 - Linux OS
 - python v3.x
-  - scipy package (pip install scipy)
-  - greenlet package (conda install -c anaconda greenlet)
-  - joblib package (conda install -c anaconda joblib)
+  - conda install greenlet joblib
+  - pip install scikit-learn scipy 
 - GCC > v5.x tested with 7.3.1 and 9 on centos 8
 - make
 - glibc
@@ -157,13 +126,46 @@ Running simulation is straightforward. Here are the steps:
 
   The performance results are found inside each application file path. Outputs are per kernel.  
 
-## Worklaods
+## Papers
+- If you find this a helpful tool in your research, please consider citing as:
 
-You can find various GPU benchmarks that can be used in your research in the following repo: <https://github.com/NMSU-PEARL/GPGPUs-Workloads>
+    ```bibtex
+    @inproceedings{Cao2025AMALI,
+      author = {Shiheng Cao and Hong An and Junmin Wu and Zhibin Yu and Junshi Chen},
+      title = {AMALI: An Analytical Model for Accurately Modeling LLM Inference on Modern GPUs},
+      year = {2025},
+      booktitle = {Proceedings of the ACM/IEEE International Symposium on Computer Architecture},
+      series = {ISCA '25}
+    }
+    ```
 
-<br />
-<br />
-<br />
+  AMALi is implemented based on the open-source project: PPT-GPU
+
+- For more information, check out the [SC' 21](https://doi.org/10.1145/3458817.3476221) paper ***(Hybrid, Scalable, Trace-Driven Performance Modeling of GPGPUs)***.
+
+    If you find this a helpful tool in your research, please consider citing as:
+
+    ```bibtex
+    @inproceedings{Arafa2021PPT-GPU,
+      author = {Y. {Arafa} and A. {Badawy} and A. {ElWazir} and A. {Barai} and A. {Eker} and G. {Chennupati} and N. {Santhi} and S. {Eidenbenz}},
+      title = {Hybrid, Scalable, Trace-Driven Performance Modeling of GPGPUs},
+      year = {2021},
+      booktitle = {Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis},
+      series = {SC '21}
+    }
+    ```
+
+- The memory model is descibed in the [ICS' 20](https://doi.org/10.1145/3392717.3392761) paper.
+
+     ```bibtex
+    @inproceedings{Arafa2020PPT-GPU-MEM,
+      author = {Y. {Arafa} and A. {Badawy} and G. {Chennupati} and A. {Barai} and N. {Santhi} and S. {Eidenbenz}},
+      title = {Fast, Accurate, and Scalable Memory Modeling of GPGPUs Using Reuse Profiles},
+      year = {2020},
+      booktitle = {Proceedings of the 34th ACM International Conference on Supercomputing},
+      series = {ICS '20}
+    }
+    ```
 
 ## Classification
 

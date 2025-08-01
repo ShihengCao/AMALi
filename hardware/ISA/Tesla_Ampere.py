@@ -23,16 +23,19 @@ units_latency = {
     "SFU"               :  23,
     "dSFU"              :  16,
     # for tensor core we use FMA/cycle instead and will calculate the latency later
-    "iTCU"              :  4,
-    "hTCU"              :  128, # accumulator FP16
-    "fTCU"              :  64, # accumulator FP32
+    "hTCU"              :  256, # accumulator FP16
+    "fTCU"              :  256, # accumulator FP32
+    "bTCU"              :  256, # accumulator BF16
+    # "hTCU"              :  512, # accumulator FP16
+    # "fTCU"              :  512, # accumulator FP32
+    # "bTCU"              :  512, # accumulator BF16
     "dTCU"              :  64,
 
     "BRA"               :  4,
     #Memory Units Latencies
     "dram_mem_access"   :   290,
-    "l1_cache_access"   :   33,
-    "l2_cache_access"   :   200,
+    "l1_cache_access"   :   37,
+    "l2_cache_access"   :   224,
     "local_mem_access"  :   290,
     "const_mem_access"  :   290,
     "shared_mem_ld"     :   23,
@@ -58,13 +61,14 @@ initial_interval = {
 
     "LDST"              :   32 / 32,
     # we will not use initial_interval for TCU for now
-    "iTCU"              :   32 / 1,
-    "hTCU"              :   128, # accumulator FP16
-    "fTCU"              :   64, # accumulator FP32
-    "dTCU"              :   0, # Ampere not support double precision, this only support in Tesla_Ampere
+    # "bTCU"              :   256, # compute BF16 accumulator FP32
+    # "hTCU"              :   256, # accumulator FP16
+    # "fTCU"              :   256, # accumulator FP32
+    # "bTCU"              :   320, # compute BF16 accumulator FP32
+    # "hTCU"              :   320, # accumulator FP16
+    # "fTCU"              :   320, # accumulator FP32
     "BRA"               :   32 / 32,
 }
-
 sass_isa = {
 
     # Integer Instructions
