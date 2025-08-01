@@ -140,6 +140,8 @@ void nvbit_at_init() {
         int result = system("rm -f memory_traces/*");
         if (result != 0) {
             std::cerr << "Failed to remove files in memory_traces/ directory. Error code: " << result << std::endl;
+        } else {
+            std::cout << "memory_traces directory already exists, removing old files." << std::endl;
         }
         } else {
         // something else
@@ -155,6 +157,8 @@ void nvbit_at_init() {
         int result = system("rm -f sass_traces/*");
         if (result != 0) {
             std::cerr << "Failed to remove files in sass_traces/ directory. Error code: " << result << std::endl;
+        } else {
+            std::cout << "sass_traces directory already exists, removing old files." << std::endl;
         }
         } else {
         // something else

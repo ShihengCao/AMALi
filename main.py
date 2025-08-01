@@ -261,8 +261,8 @@ def main():
     if not os.path.exists("./outputs"):
         os.makedirs("./outputs")
     if all_kernels == True:    
-        if app_output_dir in os.listdir("../outputs"):
-            complete_files = os.listdir(os.path.join("../outputs",app_output_dir))
+        if app_output_dir in os.listdir("./outputs"):
+            complete_files = os.listdir(os.path.join("./outputs",app_output_dir))
             for file in complete_files:
                 cur_id = int(file.split('_')[0])
                 if cur_id not in app_kernels_id:
@@ -298,7 +298,7 @@ def main():
         simianEngine.run()
         simianEngine.exit()
     else:
-        print(len(kernels_info))
+        print(f'Number of Kernels in current app is: {len(kernels_info)}')
         gpuNode = GPUNode(gpu_configs.uarch, compute_capability.cc_configs, len(kernels_info))  
         print('+'+'-'*30)
         for i in range (len(kernels_info)):
