@@ -172,6 +172,7 @@ class Warp(object):
         # split the result of func <calculate_complete_and_issue> into intervals
         functional_units, mem_access_num, mem_read_num, current_interval_length = initilaizing_variables() 
         former_cycle = issue_cycle_list[0]
+        issue_cycle = 0
         for index in range(len(issue_cycle_list[1:])):
             issue_cycle = issue_cycle_list[index+1]
             if issue_cycle - former_cycle == 1:

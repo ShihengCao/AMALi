@@ -44,8 +44,10 @@ units_latency = {
     "tex_cache_access"  :   86,
     "atomic_operation"  :   245,
     #Kernel_launch_ovhd get from Accel-sim benchmark
-    "kernel_launch_ovhd"    :   1980
-
+    "kernel_launch_ovhd"    :   1980,
+    "slope_alpha"   :  0.0036, # KLL model 
+    "slope_beta"   :  0.0366, # KLL model 
+    "slope_gamma"   :  1.1891, # KLL model 
 }
 
 initial_interval = {

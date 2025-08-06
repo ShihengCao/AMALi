@@ -40,10 +40,19 @@ def parse(units_latency, sass_instructions, sass_path, logger):
 
         splitted_inst = inst.split(" ")
         # new!! add sm_id to sass parser results
-        sm_id = int(splitted_inst[0])
+        sm_id = splitted_inst[0]
         # delete sm_id for not changing too many codes
         splitted_inst = splitted_inst[1:]
-        
+        # two kind of trace: sm_id warp_id \ sm_id cta_id_x cta_id_y cta_id_z warp_id
+        if splitted_inst[1].isdigit():
+            # new!! add cta_id_x, cta_id_y, cta_id_z to sass parser results
+            cta_id_x = int(splitted_inst[0])
+            cta_id_y = int(splitted_inst[1])  
+            cta_id_z = int(splitted_inst[2])
+            # delete cta_id_x, cta_id_y, cta_id_z for not changing too many codes
+            splitted_inst = splitted_inst[3:]
+            sm_id = sm_id +'#' + str(cta_id_x) + '#' + str(cta_id_y) + '#' + str(cta_id_z)
+
         warp_id = int(splitted_inst[0])
         current_inst = splitted_inst[1]
         opcodeAndOption = current_inst.split(".")
@@ -207,34 +216,33 @@ def parse(units_latency, sass_instructions, sass_path, logger):
     sorted_opcnt = sorted(opcnt_dict.items(), key=lambda item: item[1], reverse=True)
     for key, value in sorted_opcnt:
         logger.write(key, value)
-
     logger.write("number of sm:",len(task_list))
     task_len_cnt = {}
     warp_num = 0
     for sm in task_list:
         warp_num += len(task_list[sm])
-        logger.write("sm info:","sm id:",sm, "warp number of this sm:",len(task_list[sm]))
+        logger.write("CTA info:","sm id#CTA x#CTA y#CTA z:",sm, "warp number of this CTA:",len(task_list[sm]))
+        warp_id_str = ""
+        warp_instr_num_str = ""
         for warp in task_list[sm]:
             cur_warp_task_len = len(task_list[sm][warp])
-
-            logger.write("warp {:d} task_len: ".format(warp),cur_warp_task_len,end='; ')
-
+            warp_id_str += "{:8d}".format(warp) + " "
+            warp_instr_num_str += "{:8d}".format(cur_warp_task_len) + " "
             if cur_warp_task_len not in task_len_cnt:
                 task_len_cnt[cur_warp_task_len] = 1
             else:
                 task_len_cnt[cur_warp_task_len] += 1
-            instruction_streaming_cnt = 0
-            for task in task_list[sm][warp]:
-                if task[0] == "EXIT":
-                    logger.write(instruction_streaming_cnt + 1,end=' ')
-                    instruction_streaming_cnt = 0
-                else:
-                    instruction_streaming_cnt += 1
-            #logger.write(';',end=' ')
-        logger.write()
-    
+            # instruction_streaming_cnt = 0
+            # for task in task_list[sm][warp]:
+            #     if task[0] == "EXIT":
+            #         logger.write(instruction_streaming_cnt + 1,end=' ')
+            #         instruction_streaming_cnt = 0
+            #     else:
+            #         instruction_streaming_cnt += 1
+        logger.write(warp_id_str)
+        logger.write(warp_instr_num_str)
+    logger.write()
     logger.write("number of warp:",warp_num)
-
     sorted_task_len_cnt = sorted(task_len_cnt.items(), key=lambda item: item[0], reverse=True)
     for key, value in sorted_task_len_cnt:
         logger.write("task len: {:d} number: {:d}".format(key,value))
@@ -289,5 +297,7 @@ def parse(units_latency, sass_instructions, sass_path, logger):
     #     print()
 
     print(f"Representative warp - SM ID: {original_sm_and_warp_ids[0]}, Warp ID: {original_sm_and_warp_ids[1]}")
+    logger.write(f"Representative warp - SM ID: {original_sm_and_warp_ids[0]}, Warp ID: {original_sm_and_warp_ids[1]}")
     print(f"Length of task_list of representative warp: {len(task_list[original_sm_and_warp_ids[0]][original_sm_and_warp_ids[1]])}")
+    logger.write(f"Length of task_list of representative warp: {len(task_list[original_sm_and_warp_ids[0]][original_sm_and_warp_ids[1]])}")
     return task_list, count_gmem_reqs, original_sm_and_warp_ids

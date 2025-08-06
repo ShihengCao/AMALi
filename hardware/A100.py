@@ -73,7 +73,6 @@ uarch = {
     "l2_cache_line_size"                :  32,                 
     "l2_cache_associativity"            :  16,  
     "l1_cache_bandwidth"                :  110.507, #(byte/clk/SM) get from Accel-sim microbenchmark
-
     # L2 total size 6144 KB, each subpartition is 96 KB. This gives ~ 64 memory parition
     "num_l2_partitions"	                :  80,
     "num_dram_channels"	                :  40,
@@ -84,7 +83,6 @@ uarch = {
     "dram_clockspeed"                   :  1512 * 10**6, # [1]
     # NOC theoritical BW, measured through microbenchmarking
     "noc_th_bandwidth"                  :  1200 * 10**9, #B/s
-
     # warp scheduling: to select which warp to execute from the active warp pool 
     # options available:
     #   - LRR: Loosely Round Robin
