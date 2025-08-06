@@ -53,3 +53,6 @@ def ceil(x, s):
 
 def qfunc(arg):
     return 0.5-0.5*sp.erf(arg/1.41421)
+
+def floor(x, s):
+    return s * math.floor(float(x)/s)

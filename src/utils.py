@@ -19,6 +19,27 @@ def get_unit_idx(unit):
             result = i
     return result
 
+def sm_id_str_to_int(sm_id_str):
+    return int(sm_id_str.split('#')[0])
+
+def output_scaler(output_dict, scaler):
+    '''
+        scale the output dictionary by the scaler
+        Args:
+            output_dict (dict): a dictionary of outputs
+            scaler (float): a scaler to scale the outputs
+        Returns:
+            scaled_output_dict (dict): a dictionary of scaled outputs
+    '''
+    keys_need_scale = ["GCoM+TCM","selected","wait","drain","long_scoreboard","short_scoreboard","math_pipe_throttle","tex_throttle", "lg_throttle", "S_MSHR_i", "S_NoC_i", "S_Dram_i"]
+    scaled_output_dict = {}
+    for key in output_dict:
+        if isinstance(output_dict[key], (int, float)) and key in keys_need_scale:
+            scaled_output_dict[key] = output_dict[key] * scaler
+        else:
+            scaled_output_dict[key] = output_dict[key]
+    return scaled_output_dict
+
 def rptv_warp_select(kmeans_features):
     '''
         use kmeans algorithm to find the represetative warp.
@@ -120,7 +141,7 @@ def print_jpg(kmeans, n_clusters, kmeans_features):
     plt.savefig('kmeans_clustering.jpg')    
 def write_to_file(pred_out):
     # mkdir if target dir is not exist
-    output_dir = os.path.join("..","outputs")
+    output_dir = os.path.join(".","outputs")
     project_name = pred_out["app_path"].split("/")[-2]
     project_output_dir = os.path.join(output_dir,project_name)
     # check output_dir is exist or not

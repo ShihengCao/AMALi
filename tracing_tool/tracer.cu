@@ -393,10 +393,8 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
         exit(0);
     } 
    
-    if (cbid == API_CUDA_cuLaunchKernel_ptsz || cbid == API_CUDA_cuLaunchKernel) {
-
+    if (cbid == API_CUDA_cuLaunchKernel_ptsz || cbid == API_CUDA_cuLaunchKernel || cbid == API_CUDA_cuLaunchGrid) {
         cuLaunchKernel_params *p = (cuLaunchKernel_params *)params;
-
             if (!is_exit) {
 
                 
@@ -480,8 +478,16 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                 
                 pthread_mutex_unlock(&mutex);
             }
-          
+
+        }   
+    else if (cbid == API_CUDA_cuMemcpyHtoD_v2 || cbid == API_CUDA_cuLaunchGridAsync || cbid == API_CUDA_cuGraphAddKernelNode || cbid == API_CUDA_cuGraphLaunch)
+    {
+        printf("nvbit_at_cuda_event: unhandled CUDA API call %s\n", name);
     }
+    // else {
+    //     printf("nvbit_at_cuda_event: unhandled CUDA API call %s\n", name);
+    //     assert(0);
+    // }
 }
 
 
@@ -494,15 +500,16 @@ void *recv_thread_fun(void *) {
             (num_recv_bytes = channel_host.recv(recv_buffer, CHANNEL_SIZE)) > 0) {
             uint32_t num_processed_bytes = 0;
             while (num_processed_bytes < num_recv_bytes) {
-
                 inst_access_t *ia = (inst_access_t *)&recv_buffer[num_processed_bytes];
-
                 if (ia->cta_id_x == -1) {
                     recv_thread_receiving = false;
                     break;
                 }
                 if(kernel_ids_to_analyze.find(kernel_id) != kernel_ids_to_analyze.end()){
                     insts_trace_fp<<ia->sm_id<<" "; 
+                    insts_trace_fp<<ia->cta_id_x<<" ";
+                    insts_trace_fp<<ia->cta_id_y<<" ";
+                    insts_trace_fp<<ia->cta_id_z<<" ";
                     insts_trace_fp<<ia->warp_id<<" "; 
 
                     /* opcode */
@@ -578,19 +585,44 @@ void *recv_thread_fun(void *) {
 //     ctx->channel_host.init(0, CHANNEL_SIZE, &channel_dev, NULL);
 // }
 
-void nvbit_at_ctx_init(CUcontext ctx) {
+// void nvbit_at_ctx_init(CUcontext ctx) {
+//     recv_thread_started = true;
+//     channel_host.init(0, CHANNEL_SIZE, &channel_dev, NULL);
+//     pthread_create(&recv_thread, NULL, recv_thread_fun, NULL);
+// }
+
+
+// void nvbit_at_ctx_term(CUcontext ctx) {
+//     if (recv_thread_started) {
+//         recv_thread_started = false;
+//         pthread_join(recv_thread, NULL);
+//     }
+
+//     dump_app_config();
+
+// }
+void nvbit_tool_init(CUcontext ctx) {
     recv_thread_started = true;
     channel_host.init(0, CHANNEL_SIZE, &channel_dev, NULL);
-    pthread_create(&recv_thread, NULL, recv_thread_fun, NULL);
+    pthread_create(&recv_thread, NULL, recv_thread_fun, ctx);
 }
-
 
 void nvbit_at_ctx_term(CUcontext ctx) {
     if (recv_thread_started) {
         recv_thread_started = false;
         pthread_join(recv_thread, NULL);
     }
-
     dump_app_config();
+}
 
+void nvbit_at_ctx_init(CUcontext ctx) {
+    // Everytime we init a context, add the foldername and kernelid to the set
+    //   char buffer[2048];
+    //   sprintf(buffer, "kernelslist_ctx_0x%lx", ctx);
+    //   std::string tmp_kernelslist = user_folder + "/traces/" + buffer;
+    //   ctx_kernelslist[ctx] = tmp_kernelslist;
+    //   sprintf(buffer, "stats_ctx_0x%lx", ctx);
+    //   std::string tmp_stats = user_folder + "/traces/" + buffer;
+    //   ctx_stats_location[ctx] = tmp_stats;
+    //   ctx_kernelid[ctx] = 1;
 }
