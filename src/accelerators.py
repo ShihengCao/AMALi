@@ -119,6 +119,7 @@ class Accelerator(object):
 		if not self.l1_cache_bypassed:
 			try:
 				self.l1_cache_size = gpu_configs["l1_cache_size"]
+				self.total_l1_cache_size = self.l1_cache_size
 			except:
 				print_config_error("l1_cache_size")
 
@@ -156,7 +157,10 @@ class Accelerator(object):
 			self.shared_mem_size = gpu_configs["shared_mem_size"]
 		except:
 			print_config_error("shared_mem_size")
-
+		try:
+			self.shared_mem_config_list = gpu_configs["shared_mem_config_list"]
+		except:
+			print_config_error("shared_mem_config_list")
 		try:
 			self.num_l2_partitions = gpu_configs["num_l2_partitions"]
 		except:
@@ -237,7 +241,7 @@ class Accelerator(object):
 		self.units_latency = gpu_configs["units_latency"]
 		self.initial_interval = gpu_configs["initial_interval"]
 		self.sass_isa = gpu_configs["sass_isa"]
-
+		
 		self.l1_cache_access_latency = self.units_latency["l1_cache_access"]
 		self.l2_cache_access_latency = self.units_latency["l2_cache_access"]
 		self.l2_cache_from_l1_access_latency = self.l2_cache_access_latency - self.l1_cache_access_latency
@@ -269,10 +273,15 @@ class Accelerator(object):
 		'''
 		update the shared memory size
 		'''
-		total_cache_size = self.l1_cache_size + self.shared_mem_size
-		num_config_type = total_cache_size // (32 * 1024)
-		for i in range(num_config_type):
-			if shared_mem_bytes <= (i+1) * 32 * 1024:
-				self.shared_mem_size = (i+1) * 32 * 1024
-				self.l1_cache_size = total_cache_size - self.shared_mem_size
+		print("Updating shared memory size to:", shared_mem_bytes)
+		if shared_mem_bytes <= 0:
+			print("Shared memory size cannot be negative or zero. Keeping the current size:", self.shared_mem_size)
+			return
+
+		for smem_size in self.shared_mem_config_list:
+			if smem_size > shared_mem_bytes:
+				self.shared_mem_size = smem_size
+				self.l1_cache_size = self.total_l1_cache_size - self.shared_mem_size
+				self.l1_cache_associativity = self.l1_cache_size // self.l1_cache_line_size // self.num_L1_cache_banks
+				print("Updated shared memory size to:", self.shared_mem_size, "and L1 cache size to:", self.l1_cache_size)
 				break

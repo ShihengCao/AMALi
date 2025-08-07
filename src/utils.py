@@ -76,12 +76,12 @@ def rptv_warp_select(kmeans_features):
     max_index = max(count_cluster, key=count_cluster.get)
     max_value = count_cluster[max_index]
     # calculate the representive warp which is the nearest warp to the largest cluster center
-    min_dist = 1e9
+    min_dist_v = 1e9
     rptv_index = 0
     for i in range(len(kmeans.labels_)):
         if kmeans.labels_[i] == max_index:
             dist = np.linalg.norm(kmeans_features[i] - kmeans.cluster_centers_[kmeans.labels_[i]])
-            if dist < min_dist:
+            if dist < min_dist_v:
                 min_dist = dist
                 rptv_index = i
     # represetative_index = -1
@@ -108,6 +108,7 @@ def print_output_info(pred_out, rptv_warp_GCoM_output):
     )
     print("| Analytical model output:",rptv_warp_GCoM_output)
     print('+'+'-'*30)
+
 def print_jpg(kmeans, n_clusters, kmeans_features):
     import matplotlib.pyplot as plt
     # 获取每个样本所属的簇标签
@@ -139,6 +140,7 @@ def print_jpg(kmeans, n_clusters, kmeans_features):
 
     # 保存图像
     plt.savefig('kmeans_clustering.jpg')    
+
 def write_to_file(pred_out):
     # mkdir if target dir is not exist
     output_dir = os.path.join(".","outputs")

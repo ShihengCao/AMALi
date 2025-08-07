@@ -26,11 +26,25 @@ warnings.filterwarnings("ignore", category=UserWarning)
 def usage():
     print("\n[USAGE]\n\
     [option 1] To simulate all kernels of the application:\n\
- python ppt.py --app <your application path> --sass (or --ptx for PTX instruction trace)\
- --config <target GPU hardware configuration> --granularity (1=One Thread Block per SM or 2=Active Thread Blocks per SM or 3=All Thread Blocks per SM)\n\n\
-    [option 2] To choose a specific kernel, add the kernel id:\n --kernel <target kernel id>\n\n\
-   [MPI] For scalabilty, add mpirun call before program command:\nmpirun -np <number of processes>" )
-
+    python main.py -a <your application path> -c <target GPU hardware configuration> -k <kernel id> -um <useMPI> -l <log> -f <force_delete>\n\n\
+    [option 2] To choose a specific kernel, add the kernel id:\n\
+    -k <target kernel id>\n\n\
+    [MPI] For scalability, add mpirun call before program command:\n\
+    mpirun -np <number of processes> python main.py -a <your application path> -c <target GPU hardware configuration> -k <kernel id> -um <useMPI> -l <log> -f <force_delete>\n\n\
+    [force_delete] To delete existing outputs and logs directories before running the simulation:\n\
+    -f <force_delete>\n\
+    [log] To enable logging:\n\
+    -l <log>\n\
+    [useMPI] To enable MPI support:\n\
+    -um <useMPI>\n\
+    [kernel id] To specify a kernel id:\n\
+    -k <kernel id>\n\
+    [target GPU hardware configuration] To specify the target GPU hardware configuration:\n\
+    -c <target GPU hardware configuration>\n\
+    [application path] To specify the application path:\n\
+    -a <your application path>\n\
+    Example:\n\
+    python main.py -a ./apps/your_app -c A100 -k 1 -um 1 -l 1 -f\n") 
 
 def get_current_kernel_info(kernel_id, app_name, app_path, app_config, log):
 
@@ -120,8 +134,6 @@ def get_current_kernel_info(kernel_id, app_name, app_path, app_config, log):
 
     return current_kernel_info
 
-
-
 def main():
 
     all_kernels = False
@@ -133,8 +145,8 @@ def main():
 
     full_cmd_arguments = sys.argv
     argument_list = full_cmd_arguments[1:]
-    short_options = "h:a:c:k:um:l"
-    long_options = ["help", "app=", "config=", "kernel=","useMPI=", "log="]
+    short_options = "h:a:c:k:um:l:f"
+    long_options = ["help", "app=", "config=", "kernel=","useMPI=", "log=", "force_delete"]
 
     try:
         arguments, values = getopt.getopt(argument_list, short_options, long_options)
@@ -165,7 +177,15 @@ def main():
             useMPI = True if current_value == '1' else False
         elif current_argument in ("-l", "--log"):
             log = True if current_value == '1' else False
-
+        elif current_argument in ("-f", "--force_delete"):
+            if os.path.exists("./outputs"):
+                import shutil
+                shutil.rmtree("./outputs")
+                print("Deleted existing outputs directory")
+            if os.path.exists("./logs"):
+                import shutil
+                shutil.rmtree("./logs")
+                print("Deleted existing logs directory")
     ######################
     ## specific kernel? ##
     ######################
@@ -189,7 +209,6 @@ def main():
         print(str("\n[Error]\n<<")+str(app_name)+str(">> doesn't exists in apps directory"))
         sys.exit(1)
 
-
     #####################################
     ## target hardware configiguration ##
     #####################################
@@ -205,7 +224,6 @@ def main():
     except:
         print(str("\n[Error]\n")+str("GPU hardware config file provided doesn't exist\n"))
         sys.exit(1)
-
     
     ##############################
     ## Target ISA Latencies ##
@@ -278,7 +296,6 @@ def main():
             usage()
             sys.exit(1)
         kernels_info.append(get_current_kernel_info(kernel_id, app_name, app_path, app_config, log))
-    
 
     ############################
     # Simian Engine parameters #

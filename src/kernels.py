@@ -19,7 +19,6 @@ from typing import Tuple
 
 from .helper_methods import *
 from .memory_model import *
-from .blocks import Block
 from .utils import print_output_info, sm_id_str_to_int, write_to_file, Logger, output_scaler
 from .warps import Warp
 
@@ -52,8 +51,6 @@ class Kernel():
 		pred_out["kernel_name"] = self.kernel_name	
 
 		pred_out["ISA"] = self.ISA
-		pred_out["total_num_workloads"] = 0
-		pred_out["active_SMs"] = 0
 		pred_out["max_active_blocks_per_SM"] = self.acc.max_active_blocks_per_SM
 		pred_out["allocated_active_warps_per_block"] = 0
 		pred_out["warps_instructions_executed"] = 0
@@ -67,7 +64,8 @@ class Kernel():
 		pred_out["simulation_time_parse"] = 0.0
 		pred_out["simulation_time_memory"] = 0.0
 		pred_out["simulation_time_compute"] = 0.0
-		
+		pred_out["total_num_workloads"]  = self.kernel_grid_size # the amount of blocks in the grid.
+		pred_out["active_SMs"] = min(self.acc.num_SMs, pred_out["total_num_workloads"]) # if #blocks > #SMs, then all SM will be active. else active as many SMs as the #blocks		
 		if self.kernel_block_size > self.acc.max_block_size:
 			print_warning("block_size",str(self.acc.max_block_size))
 			self.kernel_block_size = self.acc.max_block_size
@@ -76,7 +74,7 @@ class Kernel():
 			print_warning("num_registers",str(self.acc.max_registers_per_thread))
 			self.kernel_num_regs = self.acc.max_registers_per_thread
 		# update shared memory size depending on the application configuration
-		self.acc.update_shared_mem(self.kernel_smem_size)
+		
 		pred_out["allocated_active_warps_per_block"] = int(ceil((float(self.kernel_block_size)/float(self.acc.warp_size)),1))
 		
 		pred_out["blocks_per_SM_limit_warps"] = int(min(pred_out["max_active_blocks_per_SM"],\
@@ -95,15 +93,16 @@ class Kernel():
 			pred_out["blocks_per_SM_limit_smem"] = pred_out["max_active_blocks_per_SM"]
 		else:
 			smem_per_block = ceil(self.kernel_smem_size, self.acc.smem_allocation_size)
-			pred_out["blocks_per_SM_limit_smem"] = int(floor((self.acc.shared_mem_size/smem_per_block),1))
-
+			pred_out["blocks_per_SM_limit_smem"] = int(floor((self.acc.shared_mem_config_list[-1]/smem_per_block),1))
+		
 		pred_out["allocated_active_blocks_per_SM"] = min(pred_out["blocks_per_SM_limit_warps"],\
 													pred_out["blocks_per_SM_limit_regs"],\
 													pred_out["blocks_per_SM_limit_smem"])
-		pred_out["total_num_workloads"]  = self.kernel_grid_size # the amount of blocks in the grid.
-		pred_out["active_SMs"] = min(self.acc.num_SMs, pred_out["total_num_workloads"]) # if #blocks > #SMs, then all SM will be active. else active as many SMs as the #blocks
+		self.acc.update_shared_mem(ceil(self.kernel_smem_size, self.acc.smem_allocation_size) * pred_out["allocated_active_blocks_per_SM"])
 		pred_out["concurrent_warps_per_SM"] = pred_out["allocated_active_blocks_per_SM"] * pred_out["allocated_active_warps_per_block"]
-		pred_out["concurrent_warps_per_sub_core"] = ceil(pred_out["concurrent_warps_per_SM"] / self.acc.num_warp_schedulers_per_SM, 1)
+		pred_out["concurrent_warps_per_sub_core"] = ceil(pred_out["concurrent_warps_per_SM"] / self.acc.num_warp_schedulers_per_SM, 1)		
+
+
 		# calculate kernel launch latency
 		slope = self.acc.slope_alpha * pred_out["allocated_active_warps_per_block"] ** 2 \
 			- self.acc.slope_beta * pred_out["allocated_active_warps_per_block"] + self.acc.slope_gamma
@@ -120,6 +119,7 @@ class Kernel():
 		toc = time.time()
 		pred_out["simulation_time_parse"] = (toc - tic)
 		# return -1			
+		print("memory args:", gmem_reqs, self.acc.l1_cache_size, self.acc.l1_cache_line_size, self.acc.l1_cache_associativity,)
 		###### ---- memory performance predictions ---- ######
 		tic = time.time()
 		memory_stats_dict = get_memory_perf(pred_out["kernel_id"], self.mem_traces_dir_path, pred_out["total_num_workloads"], self.acc.num_SMs,\
@@ -200,25 +200,6 @@ class Kernel():
 		self.logger.write(rptv_warp_GCoM_output)
 		# print output info		
 		print_output_info(pred_out, rptv_warp_GCoM_output)
-
-	def spawn_SM_tasklists(self, gpu, SM_id, tasklist, kernel_id, isa, avg_mem_lat, avg_atom_lat):
-		'''
-			return a list of Blocks to run on one SM each with allocated number of warps
-			one block contains all warp running on a specific sub-core
-		'''
-		new_tasklists = []  		
-		block_list = []	
-		for i in range(gpu.num_warp_schedulers_per_SM):
-			new_tasklists.append({})
-
-		for key in tasklist:
-			# allocate each warp to a sub-core(warp scheduler)
-			new_tasklists[key % gpu.num_warp_schedulers_per_SM][key] = tasklist[key]
-
-		for i in range(gpu.num_warp_schedulers_per_SM):
-			block_list.append(Block(gpu, sm_id_str_to_int(SM_id), i,
-						   new_tasklists[i], kernel_id, isa, avg_mem_lat, avg_atom_lat))		
-		return block_list
 	
 	def calculate_GCoM(self, represetative_sm_warp_pair:tuple, pred_out:dict,):
 		# spawning all SMs which includes several warps
@@ -226,9 +207,7 @@ class Kernel():
 		for _ in range(self.pred_out["active_SMs"]):
 			SM_block_list.append({})
 		total_warp_num = 0
-		'''
-			scan all CTA and Count warp number in all SM and sub-cores
-		'''
+		# scan all CTA and Count warp number in all SM and sub-cores
 		warp_num_count = []
 		warp_instr_num_count = []
 		for _ in range(self.acc.num_SMs):
@@ -247,31 +226,50 @@ class Kernel():
 		# find the represetative warp based on the represetative index
 		rptv_sm_hashtag_CTA_id, rptv_warp_id = represetative_sm_warp_pair[0], represetative_sm_warp_pair[1]
 		rptv_SM_id = sm_id_str_to_int(rptv_sm_hashtag_CTA_id)		
+		# Calculate mean warp per SM
+		mean_warp_per_SM = sum([sum(warp_num_count[sm_id]) for sm_id in range(self.acc.num_SMs)]) / self.acc.num_SMs
+		self.logger.write("Mean warp per SM:", mean_warp_per_SM)
+		# Find closest SM to mean
+		closest_sm_to_mean = 0
+		min_diff = float('inf')
+		for sm_id in range(self.acc.num_SMs):
+			sm_warp_count = sum(warp_num_count[sm_id])
+			if sm_warp_count == 0:
+				continue
+			diff = abs(sm_warp_count - mean_warp_per_SM)
+			if diff < min_diff:
+				min_diff = diff
+				closest_sm_to_mean = sm_id
+		self.logger.write("Closest SM to mean:", closest_sm_to_mean, "with warp count:", sum(warp_num_count[closest_sm_to_mean]))
+		mean_warp_per_SM = sum(warp_num_count[closest_sm_to_mean])
+		mean_warp_per_sub_core = ceil(mean_warp_per_SM / self.acc.num_warp_schedulers_per_SM, 1)
 		# find the max warp number in each SM and sub-core
 		max_warp_per_SM = max([sum(warp_num_count[sm_id]) for sm_id in range(self.acc.num_SMs)])
-		max_warp_per_sub_core = max(warp_num_count[rptv_SM_id])
+		max_warp_per_sub_core = max(warp_num_count[closest_sm_to_mean]) # max warp number in the sub-core of the closest SM to mean
 		max_instr_num_SM = max([sum(warp_instr_num_count[sm_id]) for sm_id in range(self.acc.num_SMs)])
-		max_instr_num_sub_core = max([max(warp_instr_num_count[sm_id]) for sm_id in range(self.acc.num_SMs)])
-
+		# max_instr_num_sub_core = max([max(warp_instr_num_count[sm_id]) for sm_id in range(self.acc.num_SMs)])
+		# initialize the representative warp
 		rptv_warp = Warp(0, self.acc, self.kernel_tasklist[rptv_sm_hashtag_CTA_id][rptv_warp_id], 
 				   self.kernel_id_real, rptv_SM_id , rptv_warp_id, pred_out["AMAT"], pred_out["ACPAO"])
 		rptv_warp_GCoM_output = None
-		rtpv_SM_warps_num = sum(warp_num_count[rptv_SM_id])
-		rptv_sub_core_warps_num = warp_num_count[rptv_SM_id][rptv_warp_id % self.acc.num_warp_schedulers_per_SM]
-		rptv_sub_core_instr_num = warp_instr_num_count[rptv_SM_id][rptv_warp_id % self.acc.num_warp_schedulers_per_SM]
+		# rptv_SM_warps_num = sum(warp_num_count[rptv_SM_id])
+		# rptv_sub_core_warps_num = warp_num_count[rptv_SM_id][rptv_warp_id % self.acc.num_warp_schedulers_per_SM]
+		# rptv_sub_core_instr_num = warp_instr_num_count[rptv_SM_id][rptv_warp_id % self.acc.num_warp_schedulers_per_SM]
 		# run interval analysis on the represetative warp
 		interval_analysis_result = rptv_warp.interval_analyze()
 		pred_out["warps_instructions_executed"] = rptv_warp.current_inst * total_warp_num # used in calculating ipc
+		gcom_arg_sub_core_warp_num = min(pred_out["concurrent_warps_per_sub_core"], mean_warp_per_sub_core)
+		gcom_arg_SM_warp_num = min(pred_out["concurrent_warps_per_SM"], mean_warp_per_SM)
 		# logging
 		self.logger.write("profiling rtpv warp, number of instructions:",len(rptv_warp.tasklist))
 		self.logger.write("args:",
-			"concurrent_warps_per_sub_core:", pred_out["concurrent_warps_per_sub_core"], 
-			"concurrent_warps_per_SM:", pred_out["concurrent_warps_per_SM"], 
-			"pred_out['active_SMs']:",pred_out["active_SMs"],
-			"pred_out['umem_hit_rate']:",pred_out["umem_hit_rate"])
+			"concurrent_warps_per_sub_core:", gcom_arg_sub_core_warp_num, 
+			"concurrent_warps_per_SM:", gcom_arg_SM_warp_num, 
+			"pred_out['active_SMs']:", pred_out["active_SMs"],
+			"pred_out['umem_hit_rate']:", pred_out["umem_hit_rate"])
 		rptv_warp_GCoM_output = self.process_GCoM(rptv_warp, interval_analysis_result,
-													pred_out["concurrent_warps_per_sub_core"], 
-													pred_out["concurrent_warps_per_SM"], 
+													gcom_arg_sub_core_warp_num, 
+													gcom_arg_SM_warp_num, 
 													pred_out["active_SMs"],
 													pred_out["umem_hit_rate"])
 		print(rptv_warp_GCoM_output)
@@ -280,35 +278,60 @@ class Kernel():
 		idle_i_output = None
 		if self.Idle_cycle_method == "GCoM":
 			# update the idle ij cycles based on the max warp number in a sub-core of rptv SM
-			if max_warp_per_sub_core > rptv_sub_core_warps_num:
+			if max_warp_per_sub_core > mean_warp_per_sub_core:
 				self.logger.write("profiling rtpv warp based on max warp number in the sub-core:", max_warp_per_sub_core)
 				idle_ij_repeat_times = ceil(max_warp_per_sub_core // (pred_out["concurrent_warps_per_SM"] // self.acc.num_warp_schedulers_per_SM), 1)
 				idle_ij_output = output_scaler(rptv_warp_GCoM_output, idle_ij_repeat_times)
 			# update the idle i cycles based on the max warp number in a SM
-			if max_warp_per_SM > rtpv_SM_warps_num:
-				self.logger.write("profiling rtpv warp based on max warp number in the SM:", max_warp_per_SM)
-				idle_i_repeat_times = ceil(max_warp_per_SM // pred_out["concurrent_warps_per_SM"], 1)
-				idle_i_output = output_scaler(rptv_warp_GCoM_output, idle_i_repeat_times)
+			if max_warp_per_SM > mean_warp_per_SM:
+				if pred_out["concurrent_warps_per_SM"] >= max_warp_per_SM:
+					self.logger.write("Warning: the max warp number in a SM is smaller than the concurrent warps per SM. Processing based on max warp number in a SM:", max_warp_per_SM)
+					idle_i_output = self.process_GCoM(rptv_warp, interval_analysis_result,
+													max_warp_per_SM, 
+													max_warp_per_SM, 
+													pred_out["active_SMs"],
+													pred_out["umem_hit_rate"])
+				else: # pred_out["concurrent_warps_per_SM"] < max_warp_per_SM:
+					self.logger.write("profiling rtpv warp based on max warp number in the SM:", max_warp_per_SM)
+					idle_i_repeat_times = ceil(max_warp_per_SM // pred_out["concurrent_warps_per_SM"], 1)
+					idle_i_output = output_scaler(rptv_warp_GCoM_output, idle_i_repeat_times)
+					if max_warp_per_SM % pred_out["concurrent_warps_per_SM"] != 0:
+						self.logger.write("profiling rtpv warp based on the remaining warp number in the SM:", max_warp_per_SM % pred_out["concurrent_warps_per_SM"])
+						less_CTA_output = self.process_GCoM(rptv_warp, interval_analysis_result,
+														max_warp_per_SM % pred_out["concurrent_warps_per_SM"], 
+														max_warp_per_SM % pred_out["concurrent_warps_per_SM"], 
+														pred_out["active_SMs"],
+														pred_out["umem_hit_rate"])
+						idle_i_output = {key: idle_i_output[key] + less_CTA_output[key] for key in idle_i_output}
 		
-		repeat_times = ceil(rptv_sub_core_warps_num // pred_out["concurrent_warps_per_sub_core"],1)
-		repeat_times = max(repeat_times, 1) # ensure repeat_times is at least 1
-		rptv_warp_GCoM_output = output_scaler(rptv_warp_GCoM_output, repeat_times)
-
+		repeat_times = ceil(mean_warp_per_sub_core // pred_out["concurrent_warps_per_sub_core"],1)
+		# repeat_times = max(repeat_times, 1) # ensure repeat_times is at least 1
+		if repeat_times > 1:
+			rptv_warp_GCoM_output = output_scaler(rptv_warp_GCoM_output, repeat_times)
+		# schedule less CTA for rptv warp
+		if mean_warp_per_sub_core % gcom_arg_sub_core_warp_num != 0:
+			self.logger.write("profiling rtpv warp based on the remaining warp number in the sub-core:", mean_warp_per_sub_core % pred_out["concurrent_warps_per_sub_core"])
+			less_CTA_output = self.process_GCoM(rptv_warp, interval_analysis_result,
+											mean_warp_per_sub_core % gcom_arg_sub_core_warp_num, 
+											mean_warp_per_SM % gcom_arg_SM_warp_num, 
+											pred_out["active_SMs"],
+											pred_out["umem_hit_rate"])
+			rptv_warp_GCoM_output = {key: rptv_warp_GCoM_output[key] + less_CTA_output[key] for key in rptv_warp_GCoM_output}
+		# add idle cycles
 		if self.Idle_cycle_method == "GCoM":
 			if idle_i_output is not None:
 				rptv_warp_GCoM_output["C_idle_i_orig"] = idle_i_output["GCoM+TCM"] - rptv_warp_GCoM_output["GCoM+TCM"]
 			if idle_ij_output is not None:
 				rptv_warp_GCoM_output["C_idle_ij_orig"] = idle_ij_output["GCoM+TCM"] - rptv_warp_GCoM_output["GCoM+TCM"]
-	
-			rptv_warp_GCoM_output["GCoM+TCM"] += rptv_warp_GCoM_output["C_idle_i_orig"]
-			rptv_warp_GCoM_output["GCoM+TCM"] += rptv_warp_GCoM_output["C_idle_ij_orig"]
+			# rptv_warp_GCoM_output["GCoM+TCM"] += rptv_warp_GCoM_output["C_idle_i_orig"]
+			# rptv_warp_GCoM_output["GCoM+TCM"] += rptv_warp_GCoM_output["C_idle_ij_orig"]
 
-		# update idle i ID(instruction divergence) cycles based on the max instruction number in a sub-core
-		# if max_instr_num_sub_core > rptv_warp_GCoM_output["selected"]:
-		# 	rptv_warp_GCoM_output["C_idle_ij_ID"] = max_instr_num_sub_core - rptv_warp_GCoM_output["selected"]
-		# else:
-		# 	rptv_warp_GCoM_output["C_idle_ij_ID"] = 0
-		if self.Idle_cycle_method == "AMALi":
+		if self.Idle_cycle_method == "AMALi":		
+			# update idle i ID(instruction divergence) cycles based on the max instruction number in a sub-core
+			# if max_instr_num_sub_core > rptv_warp_GCoM_output["selected"]:
+			# 	rptv_warp_GCoM_output["C_idle_ij_ID"] = max_instr_num_sub_core - rptv_warp_GCoM_output["selected"]
+			# else:
+			# 	rptv_warp_GCoM_output["C_idle_ij_ID"] = 0
 			# update idle i ID(instruction divergence) cycles based on the max instruction number in a SM
 			if max_instr_num_SM > rptv_warp_GCoM_output["selected"]:
 				rptv_warp_GCoM_output["C_idle_i_ID"] = max_instr_num_SM - rptv_warp_GCoM_output["selected"]
@@ -317,8 +340,8 @@ class Kernel():
 			rptv_warp_GCoM_output["GCoM+ID"] = rptv_warp_GCoM_output["GCoM+TCM"] + rptv_warp_GCoM_output["C_idle_i_ID"] # + rptv_warp_GCoM_output["C_idle_ij_ID"]
 		# add the kernel launch overhead
 		rptv_warp_GCoM_output["no_instructions_and_imc_miss"] = self.kernel_launch_latency
-		rptv_warp_GCoM_output["GCoM+KLL"] = rptv_warp_GCoM_output["GCoM+TCM"] + rptv_warp_GCoM_output["no_instructions_and_imc_miss"]
-		rptv_warp_GCoM_output["AMALi (GCoM+TCM+KLL+ID)"] = rptv_warp_GCoM_output["GCoM+KLL"] + rptv_warp_GCoM_output["C_idle_i_ID"] 
+		rptv_warp_GCoM_output["GCoM+TCM+KLL"] = rptv_warp_GCoM_output["GCoM+TCM"] + rptv_warp_GCoM_output["no_instructions_and_imc_miss"]
+		rptv_warp_GCoM_output["AMALi (GCoM+TCM+KLL+ID)"] = rptv_warp_GCoM_output["GCoM+TCM+KLL"] + rptv_warp_GCoM_output["C_idle_i_ID"] + rptv_warp_GCoM_output["C_idle_i_orig"] + rptv_warp_GCoM_output["C_idle_ij_orig"]
 		return rptv_warp_GCoM_output
 		
 	def process_GCoM(self, warp: Warp, 
