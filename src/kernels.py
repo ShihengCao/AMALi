@@ -234,13 +234,15 @@ class Kernel():
 		min_diff = float('inf')
 		for sm_id in range(self.acc.num_SMs):
 			sm_warp_count = sum(warp_num_count[sm_id])
+			if sm_warp_count == 0:
+				continue
 			diff = abs(sm_warp_count - mean_warp_per_SM)
 			if diff < min_diff:
 				min_diff = diff
 				closest_sm_to_mean = sm_id
 		self.logger.write("Closest SM to mean:", closest_sm_to_mean, "with warp count:", sum(warp_num_count[closest_sm_to_mean]))
-		mean_warp_per_SM = warp_num_count[closest_sm_to_mean]
-		mean_warp_per_sub_core = ceil(sum(mean_warp_per_SM) / self.acc.num_warp_schedulers_per_SM, 1)
+		mean_warp_per_SM = sum(warp_num_count[closest_sm_to_mean])
+		mean_warp_per_sub_core = ceil(mean_warp_per_SM / self.acc.num_warp_schedulers_per_SM, 1)
 		# find the max warp number in each SM and sub-core
 		max_warp_per_SM = max([sum(warp_num_count[sm_id]) for sm_id in range(self.acc.num_SMs)])
 		max_warp_per_sub_core = max(warp_num_count[closest_sm_to_mean]) # max warp number in the sub-core of the closest SM to mean
@@ -339,7 +341,7 @@ class Kernel():
 		# add the kernel launch overhead
 		rptv_warp_GCoM_output["no_instructions_and_imc_miss"] = self.kernel_launch_latency
 		rptv_warp_GCoM_output["GCoM+TCM+KLL"] = rptv_warp_GCoM_output["GCoM+TCM"] + rptv_warp_GCoM_output["no_instructions_and_imc_miss"]
-		rptv_warp_GCoM_output["AMALi (GCoM+TCM+KLL+ID)"] = rptv_warp_GCoM_output["GCoM+TCM+KLL"] + rptv_warp_GCoM_output["C_idle_i_ID"] + rptv_warp_GCoM_output["C_idle_i"] + rptv_warp_GCoM_output["C_idle_ij"]
+		rptv_warp_GCoM_output["AMALi (GCoM+TCM+KLL+ID)"] = rptv_warp_GCoM_output["GCoM+TCM+KLL"] + rptv_warp_GCoM_output["C_idle_i_ID"] + rptv_warp_GCoM_output["C_idle_i_orig"] + rptv_warp_GCoM_output["C_idle_ij_orig"]
 		return rptv_warp_GCoM_output
 		
 	def process_GCoM(self, warp: Warp, 

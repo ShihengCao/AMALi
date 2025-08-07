@@ -275,7 +275,7 @@ class Accelerator(object):
 		'''
 		print("Updating shared memory size to:", shared_mem_bytes)
 		if shared_mem_bytes <= 0:
-			print("Shared memory size cannot be negative. Keeping the current size:", self.shared_mem_size)
+			print("Shared memory size cannot be negative or zero. Keeping the current size:", self.shared_mem_size)
 			return
 
 		for smem_size in self.shared_mem_config_list:
@@ -285,9 +285,3 @@ class Accelerator(object):
 				self.l1_cache_associativity = self.l1_cache_size // self.l1_cache_line_size // self.num_L1_cache_banks
 				print("Updated shared memory size to:", self.shared_mem_size, "and L1 cache size to:", self.l1_cache_size)
 				break
-		# num_config_type = total_cache_size // (32 * 1024)
-		# for i in range(num_config_type):
-		# 	if shared_mem_bytes <= (i+1) * 32 * 1024:
-		# 		self.shared_mem_size = (i+1) * 32 * 1024
-		# 		self.l1_cache_size = total_cache_size - self.shared_mem_size
-		# 		break
