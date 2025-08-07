@@ -133,8 +133,8 @@ def main():
 
     full_cmd_arguments = sys.argv
     argument_list = full_cmd_arguments[1:]
-    short_options = "h:a:c:k:um:l"
-    long_options = ["help", "app=", "config=", "kernel=","useMPI=", "log="]
+    short_options = "h:a:c:k:um:l:f"
+    long_options = ["help", "app=", "config=", "kernel=","useMPI=", "log=", "force_delete"]
 
     try:
         arguments, values = getopt.getopt(argument_list, short_options, long_options)
@@ -165,7 +165,15 @@ def main():
             useMPI = True if current_value == '1' else False
         elif current_argument in ("-l", "--log"):
             log = True if current_value == '1' else False
-
+        elif current_argument in ("-f", "--force_delete"):
+            if os.path.exists("./outputs"):
+                import shutil
+                shutil.rmtree("./outputs")
+                print("Deleted existing outputs directory")
+            if os.path.exists("./logs"):
+                import shutil
+                shutil.rmtree("./logs")
+                print("Deleted existing logs directory")
     ######################
     ## specific kernel? ##
     ######################

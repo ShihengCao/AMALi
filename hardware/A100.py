@@ -65,11 +65,12 @@ uarch = {
     # SMEM size can be: 64KB, 32KB of size
     # default config is 32KB for L1 cache size and 96KB for SMEM
     # ** Sizes are in Byte **
-    "l1_cache_size"                     :  128 * 1024,
-    "shared_mem_size"                   :  64 * 1024,   
+    "l1_cache_size"                     :  192 * 1024,
+    "shared_mem_size"                   :  0,   
+    "shared_mem_config_list"            :  [32 * 1024, 64 * 1024, 96 * 1024, 100 * 1024, 132 * 1024, 164 * 1024],
     "l1_cache_line_size"                :  32,  # 128B actually but 32B per sector              
     "l1_cache_associativity"            :  64,
-    "l2_cache_size"                     :  40 * 1024*1024, # [2]
+    "l2_cache_size"                     :  40 * 1024 * 1024, # [2]
     "l2_cache_line_size"                :  32,                 
     "l2_cache_associativity"            :  16,  
     "l1_cache_bandwidth"                :  110.507, #(byte/clk/SM) get from Accel-sim microbenchmark
