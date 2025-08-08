@@ -21,8 +21,8 @@
 import sys, os, getopt, importlib
 from simian import Simian, Entity
 from src.kernels import Kernel
-import warnings
-warnings.filterwarnings("ignore", category=UserWarning) 
+from src.post_process import parse_log, parse_out
+
 def usage():
     print("\n[USAGE]\n\
     [option 1] To simulate all kernels of the application:\n\
@@ -49,12 +49,9 @@ def usage():
 def get_current_kernel_info(kernel_id, app_name, app_path, app_config, log):
 
     current_kernel_info = {}
-
     current_kernel_info["app_path"] = app_path
     current_kernel_info["kernel_id"] = kernel_id
     current_kernel_info["log"] = log
-    # current_kernel_info["method_name"] = method_name
-    # current_kernel_info["granularity"] = granularity
 
     ###########################
     ## kernel configurations ##
@@ -139,6 +136,9 @@ def main():
     all_kernels = False
     useMPI = False
     log = True
+    app_path = ""
+    app_name = ""
+    gpu_config_file = ""
     kernel_id = -1
     kernels_info = []
     instructions_type = "SASS"
@@ -168,7 +168,25 @@ def main():
 
     for current_argument, current_value in arguments:
         if current_argument in ("-a", "--app"):
-            app_name = current_value
+            if not os.path.exists(current_value):
+                print("\n[Error]\n<<"+current_value+">> doesn't exists in apps directory")
+                sys.exit(1)
+            if not os.path.isdir(current_value):
+                print("\n[Error]\n<<"+current_value+">> is not a directory")
+                sys.exit(1)
+            if not os.path.exists(current_value + "/app_config.py"):
+                print("\n[Error]\n<<app_config.py>> file doesn't exists in <<"+current_value+">> directory")
+                sys.exit(1)
+            if not os.path.exists(current_value + "/sass_traces"):
+                print("\n[Error]\n<<sass_traces>> directory doesn't exists in <<"+current_value+">> directory")
+                sys.exit(1)
+            if not os.path.exists(current_value + "/memory_traces"):
+                print("\n[Error]\n<<memory_traces>> directory doesn't exists in <<"+current_value+">> directory")
+                sys.exit(1)
+            if current_value[-1] != '/':
+                current_value = current_value + '/'
+            app_path = current_value
+            app_name = app_path.split('/')[-2]
         elif current_argument in ("-c", "--config"):
             gpu_config_file = current_value
         elif current_argument in ("-k", "--kernel"):
@@ -178,13 +196,17 @@ def main():
         elif current_argument in ("-l", "--log"):
             log = True if current_value == '1' else False
         elif current_argument in ("-f", "--force_delete"):
-            if os.path.exists("./outputs"):
+            if app_name == "":
+                print("\n[Error]\n place -a <your application path> before -f <force_delete>")
+                usage()
+                sys.exit(1)
+            if os.path.exists("./outputs/{}".format(app_name)):
                 import shutil
-                shutil.rmtree("./outputs")
+                shutil.rmtree("./outputs/{}".format(app_name))
                 print("Deleted existing outputs directory")
-            if os.path.exists("./logs"):
+            if os.path.exists("./logs{}".format(app_name)):
                 import shutil
-                shutil.rmtree("./logs")
+                shutil.rmtree("./logs{}".format(app_name))
                 print("Deleted existing logs directory")
     ######################
     ## specific kernel? ##
@@ -195,20 +217,7 @@ def main():
     ###############
     ## app name ##
     ###############
-    try:
-        app_name
-    except NameError:
-        print("\n[Error]\nmissing application name")
-        usage()
-        sys.exit(1)
-    
-    app_path = app_name
     sys.path.append(app_path)
-    
-    if not os.path.exists(app_path):
-        print(str("\n[Error]\n<<")+str(app_name)+str(">> doesn't exists in apps directory"))
-        sys.exit(1)
-
     #####################################
     ## target hardware configiguration ##
     #####################################
@@ -267,15 +276,15 @@ def main():
         # 打印 app_config.py 的绝对路径
         print(f"app_config module path: {os.path.abspath(app_config_path)}")
     except FileNotFoundError:
-        print(f"\n[Error]\n<app_config.py> file doesn't exist in \"{app_name}\" directory")
+        print(f"\n[Error]\n<app_config.py> file doesn't exist in \"{app_path}\" directory")
         sys.exit(1)
     except Exception as e:
         print(f"\n[Error]\nFailed to import <app_config.py>: {e}")
         sys.exit(1)
 
     app_kernels_id = app_config.app_kernels_id
-    app_output_dir = app_name.split('/')[-2]
-    # if ../outputs not exist then make it
+    app_output_dir = app_path.split('/')[-2]
+    # if ./outputs not exist then make it
     if not os.path.exists("./outputs"):
         os.makedirs("./outputs")
     if all_kernels == True:    
@@ -289,12 +298,6 @@ def main():
         for kernel_id in app_kernels_id:
             kernels_info.append(get_current_kernel_info(str(kernel_id), app_name, app_path, app_config, log))
     else:
-        try:
-            kernel_id
-        except NameError:
-            print("\n[Error]\nmissing target kernel id")
-            usage()
-            sys.exit(1)
         kernels_info.append(get_current_kernel_info(kernel_id, app_name, app_path, app_config, log))
 
     ############################
@@ -322,6 +325,11 @@ def main():
             k_id = i 
             cur_kernel = Kernel(k_id, gpuNode, kernels_info[i])
             cur_kernel.kernel_call_GCoM(None, "Kernel", k_id)
+    
+    print("complete analysis and start parsing output")
+    parse_log(app_name)
+    parse_out(app_name)
+    print("complete parsing")
 
 class GPUNode(object):
 	"""

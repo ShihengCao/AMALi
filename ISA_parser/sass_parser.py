@@ -26,18 +26,9 @@ def parse(units_latency, sass_instructions, sass_path, logger):
     opcnt_dict = {}
     opcnt_dict["ST"] = 0
     opcnt_dict["LD"] = 0
-
-    # insts_count = sass_instructions.copy()    
-    # insts_count["ST"] = 0
-    # insts_count["LD"] = 0
-    # def flush_dict(input_dict:dict):
-    #     for key in input_dict:
-    #         input_dict[key] = 0
-    # flush_dict(insts_count)
      
     for inst in sass_trace:
         inst_list = []
-
         splitted_inst = inst.split(" ")
         # new!! add sm_id to sass parser results
         sm_id = splitted_inst[0]
@@ -60,7 +51,6 @@ def parse(units_latency, sass_instructions, sass_path, logger):
         opcodeAndOption.pop(0)
         
         isOpcodeST = False
-
         if opcode in uniform_insts_list: # add 'U' before register index in uniform instructions
             for i in range(len(opcodeAndOption)):
                 opcodeAndOption[i] = 'U' + opcodeAndOption[i]
@@ -216,6 +206,7 @@ def parse(units_latency, sass_instructions, sass_path, logger):
     sorted_opcnt = sorted(opcnt_dict.items(), key=lambda item: item[1], reverse=True)
     for key, value in sorted_opcnt:
         logger.write(key, value)
+    logger.write("### SASS Trace Summary ###")
     logger.write("number of sm:",len(task_list))
     task_len_cnt = {}
     warp_num = 0
@@ -232,15 +223,9 @@ def parse(units_latency, sass_instructions, sass_path, logger):
                 task_len_cnt[cur_warp_task_len] = 1
             else:
                 task_len_cnt[cur_warp_task_len] += 1
-            # instruction_streaming_cnt = 0
-            # for task in task_list[sm][warp]:
-            #     if task[0] == "EXIT":
-            #         logger.write(instruction_streaming_cnt + 1,end=' ')
-            #         instruction_streaming_cnt = 0
-            #     else:
-            #         instruction_streaming_cnt += 1
         logger.write(warp_id_str)
         logger.write(warp_instr_num_str)
+    logger.write("### SASS Trace Summary ###")
     logger.write()
     logger.write("number of warp:",warp_num)
     sorted_task_len_cnt = sorted(task_len_cnt.items(), key=lambda item: item[0], reverse=True)
@@ -253,18 +238,13 @@ def parse(units_latency, sass_instructions, sass_path, logger):
 
     def transform_task_list(task_list, functional_units_list):
         flattened_warps = []
-        warp_info = []  # 用于存储每个warp的sm_id和warp_id
+        warp_info = []  
         
         for sm_id in sorted(task_list.keys()):
             for warp_id in sorted(task_list[sm_id].keys()):
                 warp_vector = task_list[sm_id][warp_id]
-                
-                # 统计每个functional unit的出现次数
                 unit_counter = Counter(item[0] for item in warp_vector if item)
-                
-                # 创建一个与functional_units_list对应的向量
                 count_vector = [unit_counter.get(unit, 0) for unit in functional_units_list]
-                
                 flattened_warps.append(count_vector)
                 warp_info.append((sm_id, warp_id))
         
@@ -276,25 +256,9 @@ def parse(units_latency, sass_instructions, sass_path, logger):
         else:
             return warp_info[representative_indices]  # 单个值的情况
 
-
-    # 假设task_list已经定义
     kmeans_features, warp_info = transform_task_list(task_list, functional_units_list)
-
-    # 假设你已经调用了聚类算法并得到了representative_index
     all_center_warp_idx_list, representative_index = rptv_warp_select(kmeans_features)
-
-    # 使用示例
     original_sm_and_warp_ids = get_original_sm_and_warp_ids(representative_index, warp_info)
-
-    # all_center_warp_sm_and_warp_ids = get_original_sm_and_warp_ids(all_center_warp_idx_list[:], warp_info)
-    # for sm_id, warp_id in all_center_warp_sm_and_warp_ids:
-    #     print(f"Center warp - SM ID: {sm_id}, Warp ID: {warp_id}")
-    #     print(f"Length of task_list of center warp: {len(task_list[sm_id][warp_id])}")
-    #     warp_vector = task_list[sm_id][warp_id]
-    #     # 统计每个functional unit的出现次数
-    #     unit_counter = Counter(item[0] for item in warp_vector if item)
-    #     print(unit_counter)
-    #     print()
 
     print(f"Representative warp - SM ID: {original_sm_and_warp_ids[0]}, Warp ID: {original_sm_and_warp_ids[1]}")
     logger.write(f"Representative warp - SM ID: {original_sm_and_warp_ids[0]}, Warp ID: {original_sm_and_warp_ids[1]}")

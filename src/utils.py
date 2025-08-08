@@ -1,6 +1,7 @@
-﻿import os
+﻿import os, sys, math
 import numpy as np
 from sklearn.cluster import KMeans
+from scipy import special as sp
 
 functional_units_list = ["iALU", "fALU", "hALU", "dALU", 
                          "SFU", "dSFU", 
@@ -22,24 +23,6 @@ def get_unit_idx(unit):
 def sm_id_str_to_int(sm_id_str):
     return int(sm_id_str.split('#')[0])
 
-def output_scaler(output_dict, scaler):
-    '''
-        scale the output dictionary by the scaler
-        Args:
-            output_dict (dict): a dictionary of outputs
-            scaler (float): a scaler to scale the outputs
-        Returns:
-            scaled_output_dict (dict): a dictionary of scaled outputs
-    '''
-    keys_need_scale = ["GCoM+TCM","selected","wait","drain","long_scoreboard","short_scoreboard","math_pipe_throttle","tex_throttle", "lg_throttle", "S_MSHR_i", "S_NoC_i", "S_Dram_i"]
-    scaled_output_dict = {}
-    for key in output_dict:
-        if isinstance(output_dict[key], (int, float)) and key in keys_need_scale:
-            scaled_output_dict[key] = output_dict[key] * scaler
-        else:
-            scaled_output_dict[key] = output_dict[key]
-    return scaled_output_dict
-
 def rptv_warp_select(kmeans_features):
     '''
         use kmeans algorithm to find the represetative warp.
@@ -53,7 +36,7 @@ def rptv_warp_select(kmeans_features):
     '''
     # kmeans_features = np.array(kmeans_features)
     # calculate the avg of kmeans_features in every column
-    kmeans_features_avg = np.mean(kmeans_features, axis = 0)
+    # kmeans_features_avg = np.mean(kmeans_features, axis = 0)
     # divide corresponding feature avg in every column
     # for feature in kmeans_features:
     #     for i in range(len(feature)):
@@ -82,7 +65,7 @@ def rptv_warp_select(kmeans_features):
         if kmeans.labels_[i] == max_index:
             dist = np.linalg.norm(kmeans_features[i] - kmeans.cluster_centers_[kmeans.labels_[i]])
             if dist < min_dist_v:
-                min_dist = dist
+                min_dist_v = dist
                 rptv_index = i
     # represetative_index = -1
     all_center_warp_index = [-1] * n_clusters
@@ -96,6 +79,44 @@ def rptv_warp_select(kmeans_features):
             all_center_warp_index[label_i] = i
     # print(count_cluster)
     return all_center_warp_index, rptv_index
+
+def dump_output(pred_out):
+
+    kernel_prefix = str(pred_out["kernel_id"])+"_"+pred_out["ISA"] +"_g"+pred_out["granularity"]
+    output_path = os.path.join(pred_out["app_path"],"output")
+    if not os.path.exists(output_path):  
+        os.makedirs(output_path)
+    outF = open(os.path.join(output_path, "kernel_"+kernel_prefix+".out"), "w+")
+
+def print_config_error(config_name, flag=0):
+	if flag == 1:
+		print("\n[Error]\nGPU Compute Capabilty \"" +config_name+"\" is not supported")
+		sys.exit(1)
+	elif flag == 2:
+		print("\n[Error]\n\""+config_name+"\" is not defined in the hardware compute capability file")
+		sys.exit(1)
+	else:
+		print("\n[Error]\n\""+config_name+"\" config is not defined in the hardware configuration file")
+		sys.exit(1)
+
+
+def print_warning(arg1, arg2, flag=False):
+	if flag:
+		print("\n[Warning]\n\"" + arg1 + "\" is not defined in the config file "+\
+		"assuming L1 cache is "+ arg2 + "\n")
+	else:
+		print("\n[Warning]\n\"" + arg1 + "\" can't be more than " + arg2\
+		 	+" registers\n assuming \"" + arg1 + "\" = " + arg2 + "\n")
+
+
+def ceil(x, s):
+	return s * math.ceil(float(x)/s)
+
+def qfunc(arg):
+    return 0.5-0.5*sp.erf(arg/1.41421)
+
+def floor(x, s):
+    return s * math.floor(float(x)/s)
 
 def print_output_info(pred_out, rptv_warp_GCoM_output):
     print("| kernel id:",pred_out["kernel_id"])
@@ -155,7 +176,6 @@ def write_to_file(pred_out):
     with open(os.path.join(project_output_dir,str(pred_out["kernel_id"]) + "_all_info.out"),'a+') as f:
         f.write('!'.join([str(i) for i in list(pred_out.keys())])+'\n')  
         f.write('!'.join([str(i) for i in list(pred_out.values())])+'\n')  
-
 class Logger():
     def __init__(self, pred_out, is_active=True):
         self.pred_out = pred_out

@@ -13,11 +13,8 @@
 # Copyright: Open source, must acknowledge original author
 
 ##############################################################################
-
-
 import os, sys, math, time
 from scipy import special as sp
-
 
 def dump_output(pred_out):
 
