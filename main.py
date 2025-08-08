@@ -21,8 +21,8 @@
 import sys, os, getopt, importlib
 from simian import Simian, Entity
 from src.kernels import Kernel
-import warnings
-warnings.filterwarnings("ignore", category=UserWarning) 
+from src.post_process import parse_log, parse_out
+
 def usage():
     print("\n[USAGE]\n\
     [option 1] To simulate all kernels of the application:\n\
@@ -284,7 +284,7 @@ def main():
 
     app_kernels_id = app_config.app_kernels_id
     app_output_dir = app_path.split('/')[-2]
-    # if ../outputs not exist then make it
+    # if ./outputs not exist then make it
     if not os.path.exists("./outputs"):
         os.makedirs("./outputs")
     if all_kernels == True:    
@@ -298,12 +298,6 @@ def main():
         for kernel_id in app_kernels_id:
             kernels_info.append(get_current_kernel_info(str(kernel_id), app_name, app_path, app_config, log))
     else:
-        try:
-            kernel_id
-        except NameError:
-            print("\n[Error]\nmissing target kernel id")
-            usage()
-            sys.exit(1)
         kernels_info.append(get_current_kernel_info(kernel_id, app_name, app_path, app_config, log))
 
     ############################
@@ -331,6 +325,11 @@ def main():
             k_id = i 
             cur_kernel = Kernel(k_id, gpuNode, kernels_info[i])
             cur_kernel.kernel_call_GCoM(None, "Kernel", k_id)
+    
+    print("complete analysis and start parsing output")
+    parse_log(app_name)
+    parse_out(app_name)
+    print("complete parsing")
 
 class GPUNode(object):
 	"""
