@@ -14,7 +14,7 @@
 
 ##############################################################################
 
-from .helper_methods import print_config_error, print_warning
+from .utils import print_config_error, print_warning
 
 class Accelerator(object):
 

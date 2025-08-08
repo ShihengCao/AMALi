@@ -17,7 +17,7 @@
 
 import multiprocessing, os, math
 from joblib import Parallel, delayed
-from .helper_methods import *
+from .utils import qfunc
 
 
 def interleave_trace(smi_trace, max_block_len):

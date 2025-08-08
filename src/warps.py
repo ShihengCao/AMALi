@@ -14,7 +14,7 @@
 
 ##############################################################################
 
-from .utils import *
+from .utils import functional_units_list
 class Warp(object):
     '''
     class that represents a warp inside a block being executed on an SM
