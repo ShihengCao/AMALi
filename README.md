@@ -1,36 +1,19 @@
 # AMALI: An Analytical Model for Accurately Modeling LLM Inference on Modern GPUs
 
-AMALI: An Analytical Model for Accurately Modeling LLM Inference on Modern GPUs. AMALi solely focus on the native (SASS) ISAs without sacrificing accuracy, ease of use, or portability. The tool is currently focused on NVIDIA GPUs. We plan to extend our approach to model other vendors' GPUs such as AMD and Intel.
+This repository contains the source code for [AMALi \[ISCA '25\]](https://doi.org/10.1145/3695053.3731064). AMALi solely focus on the native (SASS) ISAs without sacrificing accuracy, ease of use, or portability. The tool is currently focused on NVIDIA GPUs.
+
+In shorts, how to use AMALi
 
 ```bash
 # trace apps
-LD_PRELOAD=/staff/Analytical_model/tracing_tool/tracer.so python example_chat_completion.py
+LD_PRELOAD=/path/to/AMALi/tracing_tool/tracer.so {exe}
 # run analysis
-python main.py --app ../RTX3090_apps/mini-Llama2/ --config RTX3090 --useMPI 0 --kernel 13
-# run with mpi
+python main.py --app {app_path} --config {config_name} --useMPI {0,1} --kernel {kernel_id} -f -l {0,1}
+# or run with mpi
 PATH=/home/caosh/mpich-install/bin:$PATH ; export PATH
-mpiexec -n 3 python main.py --app ../RTX3090_apps/Llama2-4096-32-258-fp16/ --config RTX3090 --kernel 71
-python main.py --app ../A100_apps/llama3-8b-2048/ --config A100 --kernel 1
-python main.py --app ~/Benchmarks/DeepBench-master/nvidia/ --config A100
-nohup python main.py --app ../A100_apps/llama3-8b-8190/ --config A100 --kernel 172 > kernel172_1014.log 2>&1 &
-# run proprecessing
-python proprecess.py Llama2-4096-32-130-fp16_
-python proprecess.py Llama2-4096-32-130-fp16_NTM
-```
-
-## SM block architecture in kernel
-
-```bash
-  SM_block_list:--|------- block_list1 --|---sub_core_block1 -> single warp tasklists
-                  |					             |---sub_core_block2
-                  |					             |---sub_core_block3 
-                  |					             |---sub_core_block4    
-                  |------- ...
-                  |
-                  |------- block_listN --|---sub_core_block1
-                                         |---sub_core_block2
-                                         |---sub_core_block3
-                                         |---sub_core_block4
+mpiexec -n {parallellism} python main.py --app {app_path} --config {config_name} --useMPI {0,1} --kernel {kernel_id} -f -l {0,1}
+# run post precessing; the last dir name of app_path is app_name
+python proprecess.py {app_name}
 ```
 
 ## Dependencies
@@ -38,7 +21,7 @@ python proprecess.py Llama2-4096-32-130-fp16_NTM
 ### Simulation
 
 - Linux OS
-- python v3.x
+- python v>3.5
   - conda install greenlet joblib
   - pip install scikit-learn scipy 
 - GCC > v5.x tested with 7.3.1 and 9 on centos 8
@@ -50,7 +33,6 @@ python proprecess.py Llama2-4096-32-130-fp16_NTM
 
 - A GPU device with compute capability = 3.5 or later
 - Software dependencies for extracting the memory traces and the SASS instructions traces are in the ***tracing_tool*** directory
-- Software dependencies for extracting the PTX instructions traces are in the ***llvm_tool*** directory
 
 #### see *dependecies* for the packages and versions tested on
 
@@ -68,15 +50,9 @@ Running simulation is straightforward. Here are the steps:
     - For example, to get the traces for a certain application you have to call the tracer.so file that was built from the ***tracing_tool*** before running the application:
 
       ```bash
-      LD_PRELOAD=~/PPT-GPU/tracing_tool/tracer.so ./2mm.out
-      LD_PRELOAD=~/ppt/tracing_tool/tracer.so python test.py
+      LD_PRELOAD=/path/to/AMALi/tracing_tool/tracer.so ./2mm.out
+      LD_PRELOAD=/path/to/AMALi/tracing_tool/tracer.so python test.py
       ```
-
-    - You can also extract the PTX traces using the ***llvm_tool*** for the PTX option.
-
-      - Go to ***llvm_tool*** folder follow the instructions in the Readme file to build the llvm_tool
-      - (1) you need to recompile the application using llvm and clang++ compiler option, (2) execute and run the application normally
-      - There will be a ***PTX_traces*** directory that has per kernel ".ptx" traces just like the ***sass_traces***
 
 3. **Build the Reuse Distance tool**
    - Go to ***reuse_distance_tool*** and follow the instructions in the Readme file to build the code
@@ -92,15 +68,14 @@ Running simulation is straightforward. Here are the steps:
 - TO RUN:
 
     ```bash
-    python ppt.py --app <application path> --sass <or --ptx> (for patx/sass instructions traces)
-    --config <target GPU hardware configuration file> --granularity 2
+    python main.py --app {app_path} --config {config_name} --useMPI {0,1} --kernel {kernel_id} -f -l {0,1}
     ```
 
     For example, running 2mm application on TITANV with sass traces. Assuming that 2mm path is *"/home/test/Workloads/2mm"*
 
     ```bash
 
-    python ppt.py --app /home/test/Workloads/2mm/ --sass --config TITANV --granularity 2
+    python main.py --app /home/test/Workloads/2mm --config TITANV --useMPI 0 -l 1
 
     ```
 
@@ -108,15 +83,7 @@ Running simulation is straightforward. Here are the steps:
 
     ```bash
 
-    mpirun -n 2 python ppt.py --app /home/test/Workloads/2mm/ --sass --config TITANV --granularity 2
-
-    ```
-
-    To choose specific kernels only, (let's say in PTX traces):
-
-    ```bash
-
-    mpirun -n 1 python ppt.py --app /home/test/Workloads/2mm/ --ptx --config TITANV --granularity 2 --kernel 1
+    mpirun -n 2 python main.py --app /home/test/Workloads/2mm --config TITANV --useMPI 0 --kernel 1 -f -l 1
 
     ```
 
@@ -166,14 +133,7 @@ Running simulation is straightforward. Here are the steps:
       series = {ICS '20}
     }
     ```
-
-## Classification
-
-PPT-GPU is part of the original PPT (<https://github.com/lanl/PPT>) and is Unclassified and contains no Unclassified Controlled Nuclear Information. It abides with the following computer code from Los Alamos National Laboratory
-
-- Code Name: Performance Prediction Toolkit, C17098
-- Export Control Review Information: DOC-U.S. Department of Commerce, EAR99
-- B&R Code: YN0100000
+According to license of PPT-GPU, keep its license
 
 ## License
 
