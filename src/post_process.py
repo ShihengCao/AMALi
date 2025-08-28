@@ -5,7 +5,7 @@ import csv
 
 def parse_log(app_name):
     log_dir = os.path.join("logs", app_name)
-    print(os.getcwd())
+    # print(os.getcwd())
     if not os.path.isdir(log_dir):
         print(f"No log directory found for application: {app_name}", log_dir)
         return
