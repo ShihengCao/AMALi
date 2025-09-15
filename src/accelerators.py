@@ -268,6 +268,9 @@ class Accelerator(object):
 		self.initial_interval['hALU'] = self.warp_size / (self.num_SP_units_per_SM / self.num_warp_schedulers_per_SM)
 		self.initial_interval['dALU'] = self.warp_size / (self.num_DP_units_per_SM / self.num_warp_schedulers_per_SM)
 		self.initial_interval['SFU'] = self.warp_size / (self.num_SF_units_per_SM / self.num_warp_schedulers_per_SM)
+		self.initial_interval['LDST'] = self.warp_size / (self.num_LDS_units_per_SM / self.num_warp_schedulers_per_SM)
+		self.initial_interval['BRA'] = self.warp_size / (self.num_BRA_units_per_SM / self.num_warp_schedulers_per_SM)
+		self.initial_interval['TEX'] = self.warp_size / (self.num_TEX_units_per_SM / self.num_warp_schedulers_per_SM)
 
 	def update_shared_mem(self, shared_mem_bytes):
 		'''

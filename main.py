@@ -284,10 +284,8 @@ def main():
 
     app_kernels_id = app_config.app_kernels_id
     app_output_dir = app_path.split('/')[-2]
-    # if ./outputs not exist then make it
-    if not os.path.exists("./outputs"):
-        os.makedirs("./outputs")
-    if all_kernels == True:    
+    if all_kernels == True and os.path.exists("./outputs"):    
+        # if the app_output_dir already exists, then remove kernel id from app_kernels_id
         if app_output_dir in os.listdir("./outputs"):
             complete_files = os.listdir(os.path.join("./outputs",app_output_dir))
             for file in complete_files:
@@ -298,7 +296,8 @@ def main():
         for kernel_id in app_kernels_id:
             kernels_info.append(get_current_kernel_info(str(kernel_id), app_name, app_path, app_config, log))
     else:
-        kernels_info.append(get_current_kernel_info(kernel_id, app_name, app_path, app_config, log))
+        for kernel_id in app_kernels_id:
+            kernels_info.append(get_current_kernel_info(str(kernel_id), app_name, app_path, app_config, log))
 
     ############################
     # Simian Engine parameters #

@@ -22,7 +22,7 @@
 
 using namespace std;
 
-#define MAX_KERNELS 30000
+#define MAX_KERNELS 300
 
 /* channel used to communicate from GPU to CPU receiving thread */
 #define CHANNEL_SIZE (1l << 20)
@@ -396,8 +396,6 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
     if (cbid == API_CUDA_cuLaunchKernel_ptsz || cbid == API_CUDA_cuLaunchKernel || cbid == API_CUDA_cuLaunchGrid) {
         cuLaunchKernel_params *p = (cuLaunchKernel_params *)params;
             if (!is_exit) {
-
-                
                 pthread_mutex_lock(&mutex);
                 instrument_function_if_needed(ctx, p->f);
                 nvbit_enable_instrumented(ctx, p->f, true);
@@ -579,28 +577,7 @@ void *recv_thread_fun(void *) {
     return NULL;
 }
 
-// void nvbit_tool_init(CUcontext ctx) {
-//     // recv_thread_done = RecvThreadState::WORKING;
-//     // recv_thread_started = true;
-//     ctx->channel_host.init(0, CHANNEL_SIZE, &channel_dev, NULL);
-// }
 
-// void nvbit_at_ctx_init(CUcontext ctx) {
-//     recv_thread_started = true;
-//     channel_host.init(0, CHANNEL_SIZE, &channel_dev, NULL);
-//     pthread_create(&recv_thread, NULL, recv_thread_fun, NULL);
-// }
-
-
-// void nvbit_at_ctx_term(CUcontext ctx) {
-//     if (recv_thread_started) {
-//         recv_thread_started = false;
-//         pthread_join(recv_thread, NULL);
-//     }
-
-//     dump_app_config();
-
-// }
 void nvbit_tool_init(CUcontext ctx) {
     recv_thread_started = true;
     channel_host.init(0, CHANNEL_SIZE, &channel_dev, NULL);
