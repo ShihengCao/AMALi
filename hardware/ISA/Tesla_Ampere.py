@@ -5,11 +5,14 @@
 # Instructions Latencies adopted from: 
 # Y. Arafa et al., "Low Overhead Instruction Latency Characterization for NVIDIA GPGPUs," HPEC'19
 # https://github.com/NMSU-PEARL/GPUs-ISA-Latencies
+# M. Khairy et al, "Accel-Sim: An Extensible Simulation Framework for Validated GPU Modeling" ISCA'20
+# https://github.com/accel-sim/accel-sim-framework
 
 # Memory Latencies adopted from:
 # H. Abdelkhalik et al., "Demystifying the Nvidia Ampere Architecture through Microbenchmarking and Instruction-level Analysis"
 # https://arxiv.org/pdf/2208.11174.pdf
-
+# M. Khairy et al, "Accel-Sim: An Extensible Simulation Framework for Validated GPU Modeling" ISCA'20
+# https://github.com/accel-sim/accel-sim-framework
 ##############################################################################
 
 units_latency = {
@@ -21,14 +24,10 @@ units_latency = {
     "dALU"              :   4,
 
     "SFU"               :  23,
-    "dSFU"              :  16,
-    # for tensor core we use FMA/cycle instead and will calculate the latency later
+    # for tensor core we use FMA/cycle instead and will calculate the latency later, the following values are useless
     "hTCU"              :  256, # accumulator FP16
     "fTCU"              :  256, # accumulator FP32
     "bTCU"              :  256, # accumulator BF16
-    # "hTCU"              :  512, # accumulator FP16
-    # "fTCU"              :  512, # accumulator FP32
-    # "bTCU"              :  512, # accumulator BF16
     "dTCU"              :  64,
 
     "BRA"               :  4,
@@ -49,9 +48,8 @@ units_latency = {
     "slope_beta"   :  0.0366, # KLL model 
     "slope_gamma"   :  1.1891, # KLL model 
 }
-
+# we will calculate later in generate accelerator
 initial_interval = {
-
     # Initiation interval (II) = threadsPerWarp / #FULanes
     "iALU"              :   0,
     "fALU"              :   0,
@@ -59,9 +57,9 @@ initial_interval = {
     "dALU"              :   0,
 
     "SFU"               :   0,
-    "dSFU"              :   32 / 1,
 
-    "LDST"              :   32 / 32,
+    "LDST"              :   0,    
+    "BRA"               :   0,
     # we will not use initial_interval for TCU for now
     # "bTCU"              :   256, # compute BF16 accumulator FP32
     # "hTCU"              :   256, # accumulator FP16
@@ -69,7 +67,6 @@ initial_interval = {
     # "bTCU"              :   320, # compute BF16 accumulator FP32
     # "hTCU"              :   320, # accumulator FP16
     # "fTCU"              :   320, # accumulator FP32
-    "BRA"               :   32 / 32,
 }
 sass_isa = {
 
@@ -227,122 +224,4 @@ sass_isa = {
     "SETCTAID"          : "iALU",
     "SETLMEMBASE"       : "iALU",
     "VOTE"              : "iALU"
-}
-
-
-ptx_isa = { # ---> (ptx v.72)
-
-    # Integer Instructions
-    "add"               : "iALU",
-    "sub"               : "iALU",
-    "mul"               : "iALU",
-    "mad"               : "iALU",
-    "mul24lo"           : ["iALU", 8],
-    "mul24hi"           : ["iALU", 15],
-    "mad24lo"           : ["iALU", 8],
-    "mad24hi"           : ["iALU", 15],
-    "sad"               : "iALU",
-    "mad"               : "iALU",
-    "div"               : ["iALU", 71],
-    "rem"               : ["iALU", 71],
-    "abs"               : "iALU",
-    "neg"               : "iALU",
-    "min"               : "iALU",
-    "max"               : "iALU",
-    "popc"              : "iALU",
-    "clz"               : ["iALU", 8],
-    "bfind"             : "iALU",
-    "fns"               : "iALU",
-    "brev"              : ["iALU", 8],
-    "bfe"               : ["iALU", 125],
-    "bfi"               : ["iALU", 125],
-    "dp4a"              : "iALU",
-    "dp2a"              : "iALU",
-    "ret"               : "iALU",
-    "exit"              : "iALU",
-    "bar"               : "iALU",
-    # Logic and Shift Instructions
-    "and"               : "iALU",
-    "or"                : "iALU",
-    "not"               : "iALU",
-    "xor"               : "iALU",
-    "cnot"              : ["iALU", 8],
-    "lop3"              : "iALU",
-    "shf"               : "iALU",
-    "shl"               : "iALU",
-    "shr"               : "iALU",
-    # Extended-Precision Integer Instructions
-    "addc"              : "iALU",
-    "sub.cc"            : "iALU",
-    "subc"              : "iALU",
-    "mad.cc"            : "iALU",
-    "madc"              : "iALU",
-    # Single-Precision Floating Instructions
-    "ftestp"            : "fALU",
-    "fcopysign"         : "fALU",
-    "fadd"              : "fALU",
-    "fsub"              : "fALU",
-    "fmul"              : "fALU",
-    "ffma"              : "fALU",
-    "fmad"              : "fALU",
-    "fdiv"              : ["fALU", 335],
-    "fabs"              : "fALU",
-    "fneg"              : "fALU",
-    "fmin"              : "fALU",
-    "fmax"              : "fALU",
-    "frcp"              : ["SFU", 60],
-    "Fastfrcp"          : ["SFU", 23],
-    "fsqrt"             : ["SFU", 60],
-    "Fastfsqrt"         : ["SFU", 18],
-    "frsqrt"            : ["SFU", 60],
-    "Fastfrsqrt"        : ["SFU", 18],
-    "fsin"              : ["SFU", 8],
-    "fcos"              : ["SFU", 8],
-    "fex2"              : ["SFU", 16],
-    "flg2"              : ["SFU", 16],
-    "ftanh"             : ["SFU", 8],
-    # Half-Precision Floating Instructions
-    "hfadd"             : "hALU",
-    "hfsub"             : "hALU", 
-    "hfmul"             : "hALU",
-    "hfma"              : "hALU",  
-    "hneg"              : "hALU",
-    "habs"              : "hALU",  
-    "hmin"              : "hALU", 
-    "hmax"              : "hALU", 
-    "htanh"             : "hALU", 
-    "hex2"              : "hALU",
-    # Double-Precision Floating Instructions
-    "dadd"              : "dALU",
-    "dsub"              : "dALU",
-    "dmul"              : "dALU",
-    "dmad"              : "dALU",
-    "dfma"              : "dALU",
-    "dabs"              : "dALU",
-    "dneg"              : "dALU",
-    "dmin"              : "dALU",
-    "dmax"              : "dALU",
-    "dmax"              : "dALU",
-    "ddiv"              : ["dALU", 506],
-    "Fastddiv"          : ["dALU", 159],
-    "drcp"              : ["dALU", 114],
-    "dsqrt"             : ["dALU", 106],
-    "drsqrt"            : ["dALU", 106],
-    # Tensor Core
-    "wmma"              : "iTCU",
-    "hwmma"             : "hTCU",
-    # Conversion & Movement Instructions
-    "mov"               : "iALU",
-    "shfl"              : "iALU",
-    "prmt"              : "iALU",
-    "cvta"              : "iALU",
-    "cvt"               : "iALU",
-    # Comparision & Selection Instructions
-    "set"               : "iALU",
-    "setp"              : "iALU",
-    "selp"              : "iALU",
-    # Control Instructions
-    "bra"               : "BRA",
-    "call"              : "BRA",
-    
 }
