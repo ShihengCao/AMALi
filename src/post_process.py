@@ -12,8 +12,8 @@ def parse_log(app_name):
 
     tag_line_re = re.compile(r'^\s*###\s*(.*?)\s*###\s*$')
     info_name_re = re.compile(r'^(?P<kernel>.+?)_info\.log$')
-
-    for log_path in glob.glob(os.path.join(log_dir, "*_info.log")):
+    all_logs = glob.glob(os.path.join(log_dir, "*_info.log"))
+    for log_path in all_logs:
         m = info_name_re.match(os.path.basename(log_path))
         if not m:
             continue

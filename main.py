@@ -50,6 +50,7 @@ def get_current_kernel_info(kernel_id, app_name, app_path, app_config, log):
 
     current_kernel_info = {}
     current_kernel_info["app_path"] = app_path
+    current_kernel_info["app_name"] = app_name
     current_kernel_info["kernel_id"] = kernel_id
     current_kernel_info["log"] = log
 
@@ -117,8 +118,6 @@ def get_current_kernel_info(kernel_id, app_name, app_path, app_config, log):
     current_kernel_info["sass_file_path"] = ""
 
     sass_file = "sass_traces/"+kernel_id+".sass"
-    if "/" in app_name:
-        sass_file = app_name.split("/")[-1]+"sass_traces/"+kernel_id+".sass"
     sass_file_path = app_path + sass_file
 
     if not os.path.isfile(sass_file_path):
@@ -145,8 +144,8 @@ def main():
 
     full_cmd_arguments = sys.argv
     argument_list = full_cmd_arguments[1:]
-    short_options = "h:a:c:k:um:l:f"
-    long_options = ["help", "app=", "config=", "kernel=","useMPI=", "log=", "force_delete"]
+    short_options = "h:a:n:c:k:um:l:f"
+    long_options = ["help", "app=", "name=", "config=", "kernel=", "useMPI=", "log=", "force_delete"]
 
     try:
         arguments, values = getopt.getopt(argument_list, short_options, long_options)
@@ -187,6 +186,8 @@ def main():
                 current_value = current_value + '/'
             app_path = current_value
             app_name = app_path.split('/')[-2]
+        elif current_argument in ("-n", "--name"):
+            app_name = current_value
         elif current_argument in ("-c", "--config"):
             gpu_config_file = current_value
         elif current_argument in ("-k", "--kernel"):
@@ -283,7 +284,7 @@ def main():
         sys.exit(1)
 
     app_kernels_id = app_config.app_kernels_id
-    app_output_dir = app_path.split('/')[-2]
+    app_output_dir = app_name
     if all_kernels == True and os.path.exists("./outputs"):    
         # if the app_output_dir already exists, then remove kernel id from app_kernels_id
         if app_output_dir in os.listdir("./outputs"):
@@ -296,8 +297,8 @@ def main():
         for kernel_id in app_kernels_id:
             kernels_info.append(get_current_kernel_info(str(kernel_id), app_name, app_path, app_config, log))
     else:
-        for kernel_id in app_kernels_id:
-            kernels_info.append(get_current_kernel_info(str(kernel_id), app_name, app_path, app_config, log))
+        # for kernel_id in app_kernels_id:
+        kernels_info.append(get_current_kernel_info(str(kernel_id), app_name, app_path, app_config, log))
 
     ############################
     # Simian Engine parameters #

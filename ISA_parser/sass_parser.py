@@ -75,10 +75,10 @@ def parse(units_latency, sass_instructions, sass_path, logger):
             if warp_id in warp_inst_count[sm_id]:
                 warp_inst_count[sm_id][warp_id] += 1
             else:
-                warp_inst_count[sm_id][warp_id] = 0
+                warp_inst_count[sm_id][warp_id] = 1
         else:
             warp_inst_count[sm_id] = {}
-            warp_inst_count[sm_id][warp_id] = 0
+            warp_inst_count[sm_id][warp_id] = 1
         #(1) type of inst
         if "LDG" in opcode:
             if "LDGSTS" in opcode:
@@ -191,7 +191,7 @@ def parse(units_latency, sass_instructions, sass_path, logger):
 
         if destination is not None:
             # store every register which is used by the current instruction to the dependency map
-            dependency_map[sm_id][warp_id][destination] = warp_inst_count[sm_id][warp_id]
+            dependency_map[sm_id][warp_id][destination] = warp_inst_count[sm_id][warp_id] - 1
             
         #(3) commit the instruction list to the task_list
         if sm_id in task_list:

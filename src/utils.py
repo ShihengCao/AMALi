@@ -165,15 +165,13 @@ def print_jpg(kmeans, n_clusters, kmeans_features):
 def write_to_file(pred_out):
     # mkdir if target dir is not exist
     output_dir = os.path.join(".","outputs")
-    project_name = pred_out["app_path"].split("/")[-2]
-    project_output_dir = os.path.join(output_dir,project_name)
+    app_name = pred_out["app_name"]
+    app_output_dir = os.path.join(output_dir,app_name)
     # check output_dir is exist or not
-    if not os.path.exists(project_output_dir):
-        os.makedirs(project_output_dir, exist_ok=True)
-    # if project_name not in os.path.join("..","outputs"):
-    #     os.mkdir(output_dir)
+    if not os.path.exists(app_output_dir):
+        os.makedirs(app_output_dir, exist_ok=True)
     # write outputs to files
-    with open(os.path.join(project_output_dir,str(pred_out["kernel_id"]) + "_all_info.out"),'a+') as f:
+    with open(os.path.join(app_output_dir,str(pred_out["kernel_id"]) + "_all_info.out"),'a+') as f:
         f.write('!'.join([str(i) for i in list(pred_out.keys())])+'\n')  
         f.write('!'.join([str(i) for i in list(pred_out.values())])+'\n')  
 class Logger():
@@ -182,12 +180,12 @@ class Logger():
         self.is_active = is_active
         # mkdir if target dir is not exist
         output_dir = os.path.join(".","logs")
-        project_name = pred_out["app_path"].split("/")[-2]
-        project_output_dir = os.path.join(output_dir,project_name)
+        app_name = pred_out["app_name"]
+        app_output_dir = os.path.join(output_dir,app_name)
         # check output_dir is exist or not
-        if not os.path.exists(project_output_dir):
-            os.makedirs(project_output_dir, exist_ok=True)
-        self.f = open(os.path.join(project_output_dir,str(pred_out["kernel_id"]) + "_info.log"),'a+')
+        if not os.path.exists(app_output_dir):
+            os.makedirs(app_output_dir, exist_ok=True)
+        self.f = open(os.path.join(app_output_dir,str(pred_out["kernel_id"]) + "_info.log"),'a+')
     
     # 析构时关闭文件
     def __del__(self):
