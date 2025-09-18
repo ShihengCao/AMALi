@@ -130,38 +130,6 @@ def print_output_info(pred_out, rptv_warp_GCoM_output):
     print("| Analytical model output:",rptv_warp_GCoM_output)
     print('+'+'-'*30)
 
-def print_jpg(kmeans, n_clusters, kmeans_features):
-    import matplotlib.pyplot as plt
-    # 获取每个样本所属的簇标签
-    labels = kmeans.labels_
-
-    # 获取簇中心
-    centroids = kmeans.cluster_centers_
-
-    # 为每个簇选择一种颜色
-    colors = plt.cm.get_cmap('rainbow', n_clusters)
-
-    # 绘制每个点
-    plt.figure(figsize=(10, 8))
-    for i in range(n_clusters):
-        # 筛选出属于当前簇的所有点
-        points = kmeans_features[labels == i]
-        # 使用不同的颜色绘制这些点
-        plt.scatter(points[:, 0], points[:, 1], color=colors(i), label=f'Cluster {i}')
-
-    # 绘制簇中心
-    plt.scatter(centroids[:, 0], centroids[:, 1], s=300, c='black', marker='X', label='Centroids')
-
-    # 添加图例
-    plt.legend()
-
-    # 设置坐标轴标签（可选）
-    plt.xlabel('Normalized ipc')
-    plt.ylabel('Normalized instruction number')
-
-    # 保存图像
-    plt.savefig('kmeans_clustering.jpg')    
-
 def write_to_file(pred_out):
     # mkdir if target dir is not exist
     output_dir = os.path.join(".","outputs")
