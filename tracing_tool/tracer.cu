@@ -96,18 +96,13 @@ int load_kernel_ids(){
 
     std::stringstream ss(content);
     std::string token;
-
     while (std::getline(ss, token, ',')) {
         // 将每个整数转换为int并存入unordered_set
-        
-        // cout << ss << endl;
         token.erase(0, token.find_first_not_of(' ')); // 左侧空格
         token.erase(token.find_last_not_of(' ') + 1); // 右侧空格
         token.erase(remove_if(token.begin(), token.end(), [](unsigned char x){ return std::isspace(x); }), token.end());
-        // print_token_ascii(token);
         kernel_ids_to_analyze.insert(std::stoi(token));
     }
-
     file.close();
     return 0;
 }
@@ -129,7 +124,7 @@ void nvbit_at_init() {
     if(key==1){
         cout << "Warning ! Error loading kernel_ids.txt" << std::endl;
         cout << "Warning ! Trace first 300 kernel by default" << std::endl;
-        for(int i=0;i<300;i++)
+        for(int i=1;i<300;i++)
             kernel_ids_to_analyze.insert(i);
     }
     app_config_fp.open("app_config.py");
@@ -172,15 +167,18 @@ void nvbit_at_init() {
 
 void dump_app_config(){
     app_config_fp<<"app_kernels_id = [";
-    for(int i=1; i<kernel_id; i++){
-        if(i >1){
+    vector<int> sorted_kernel_ids(kernel_ids_to_analyze.begin(), kernel_ids_to_analyze.end());
+    sort(sorted_kernel_ids.begin(), sorted_kernel_ids.end());
+    int traced_kernel_num = min((int)sorted_kernel_ids.size()+1, kernel_id);
+    for(int i = 1; i < traced_kernel_num; i++){
+        if(i > 1){
             app_config_fp<<", ";
         }
-        app_config_fp<<to_string(i);
+        app_config_fp<<sorted_kernel_ids[i-1];
     }
     app_config_fp<<"]";
     app_config_fp.close();
-    cout << "--> sass + memory traces are collected for "<<(kernel_id - 1) << " kernels"<<"\n";
+    cout << "--> sass + memory traces are collected for "<<(traced_kernel_num - 1) << " kernels"<<"\n";
 }
 
 /* set used to avoid re-instrumenting the same functions multiple times */
@@ -436,7 +434,7 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                 int girdX = 0, gridY = 0, gridZ = 0, blockX = 0, blockY = 0, blockZ= 0,\
                 nregs=0, shmem_static_nbytes=0, shmem_dynamic_nbytes = 0, stream_id = 0;
 
-                CUDA_SAFECALL(cuFuncGetAttribute(&nregs, CU_FUNC_ATTRIBUTE_NUM_REGS, p->f));
+                CUDA_SAFECALL(cuFuncGetAttribute(&nregs, CU_FUNC_ATTRIBUTE_NUM_REGS, p->f)); // regs per threads
                 CUDA_SAFECALL(cuFuncGetAttribute(&shmem_static_nbytes,CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES, p->f));
 
                 girdX = p->gridDimX;
@@ -593,13 +591,5 @@ void nvbit_at_ctx_term(CUcontext ctx) {
 }
 
 void nvbit_at_ctx_init(CUcontext ctx) {
-    // Everytime we init a context, add the foldername and kernelid to the set
-    //   char buffer[2048];
-    //   sprintf(buffer, "kernelslist_ctx_0x%lx", ctx);
-    //   std::string tmp_kernelslist = user_folder + "/traces/" + buffer;
-    //   ctx_kernelslist[ctx] = tmp_kernelslist;
-    //   sprintf(buffer, "stats_ctx_0x%lx", ctx);
-    //   std::string tmp_stats = user_folder + "/traces/" + buffer;
-    //   ctx_stats_location[ctx] = tmp_stats;
-    //   ctx_kernelid[ctx] = 1;
+
 }

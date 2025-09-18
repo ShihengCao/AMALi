@@ -14,10 +14,29 @@
 
 ##############################################################################
 from src.utils import uniform_insts_list, functional_units_list, rptv_warp_select
+from typing import Generator, Dict, List, Tuple
+import os
+
+def read_sass_trace_generator(sass_path: str) -> Generator[str, None, None]:
+    """
+    SASS trace Generator function to read SASS trace file line by line.
+    Args:   sass_path: SASS trace file path
+    Yields:     str: single line from the SASS trace file
+    Raises:
+        FileNotFoundError: file not found
+        IOError: file cannot be read
+    """
+    if not os.path.exists(sass_path):
+        raise FileNotFoundError(f"SASS trace file not found: {sass_path}")
+    with open(sass_path, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line:  # 跳过空行
+                yield line
 
 def parse(units_latency, sass_instructions, sass_path, logger):
-    
-    sass_trace = open(sass_path,'r').read().strip().split('\n')
+    sass_trace = read_sass_trace_generator(sass_path)
+    # sass_trace = open(sass_path,'r').read().strip().split('\n')
 
     task_list = {}
     dependency_map = {}
@@ -63,22 +82,16 @@ def parse(units_latency, sass_instructions, sass_path, logger):
             opcnt_dict[opcode] += 1
         else:
             opcnt_dict[opcode] = 1
-
-        # ??? warp_inst_count[warp_id] = 0 ???
-        # if warp_id in warp_inst_count:
-        #     warp_inst_count[warp_id] += 1
-        # else:
-        #     warp_inst_count[warp_id] = 0
         
         # create SM in warp_inst_count
         if sm_id in warp_inst_count:
             if warp_id in warp_inst_count[sm_id]:
                 warp_inst_count[sm_id][warp_id] += 1
             else:
-                warp_inst_count[sm_id][warp_id] = 0
+                warp_inst_count[sm_id][warp_id] = 1
         else:
             warp_inst_count[sm_id] = {}
-            warp_inst_count[sm_id][warp_id] = 0
+            warp_inst_count[sm_id][warp_id] = 1
         #(1) type of inst
         if "LDG" in opcode:
             if "LDGSTS" in opcode:
@@ -191,7 +204,7 @@ def parse(units_latency, sass_instructions, sass_path, logger):
 
         if destination is not None:
             # store every register which is used by the current instruction to the dependency map
-            dependency_map[sm_id][warp_id][destination] = warp_inst_count[sm_id][warp_id]
+            dependency_map[sm_id][warp_id][destination] = warp_inst_count[sm_id][warp_id] - 1
             
         #(3) commit the instruction list to the task_list
         if sm_id in task_list:

@@ -130,50 +130,16 @@ def print_output_info(pred_out, rptv_warp_GCoM_output):
     print("| Analytical model output:",rptv_warp_GCoM_output)
     print('+'+'-'*30)
 
-def print_jpg(kmeans, n_clusters, kmeans_features):
-    import matplotlib.pyplot as plt
-    # 获取每个样本所属的簇标签
-    labels = kmeans.labels_
-
-    # 获取簇中心
-    centroids = kmeans.cluster_centers_
-
-    # 为每个簇选择一种颜色
-    colors = plt.cm.get_cmap('rainbow', n_clusters)
-
-    # 绘制每个点
-    plt.figure(figsize=(10, 8))
-    for i in range(n_clusters):
-        # 筛选出属于当前簇的所有点
-        points = kmeans_features[labels == i]
-        # 使用不同的颜色绘制这些点
-        plt.scatter(points[:, 0], points[:, 1], color=colors(i), label=f'Cluster {i}')
-
-    # 绘制簇中心
-    plt.scatter(centroids[:, 0], centroids[:, 1], s=300, c='black', marker='X', label='Centroids')
-
-    # 添加图例
-    plt.legend()
-
-    # 设置坐标轴标签（可选）
-    plt.xlabel('Normalized ipc')
-    plt.ylabel('Normalized instruction number')
-
-    # 保存图像
-    plt.savefig('kmeans_clustering.jpg')    
-
 def write_to_file(pred_out):
     # mkdir if target dir is not exist
     output_dir = os.path.join(".","outputs")
-    project_name = pred_out["app_path"].split("/")[-2]
-    project_output_dir = os.path.join(output_dir,project_name)
+    app_name = pred_out["app_name"]
+    app_output_dir = os.path.join(output_dir,app_name)
     # check output_dir is exist or not
-    if not os.path.exists(project_output_dir):
-        os.makedirs(project_output_dir, exist_ok=True)
-    # if project_name not in os.path.join("..","outputs"):
-    #     os.mkdir(output_dir)
+    if not os.path.exists(app_output_dir):
+        os.makedirs(app_output_dir, exist_ok=True)
     # write outputs to files
-    with open(os.path.join(project_output_dir,str(pred_out["kernel_id"]) + "_all_info.out"),'a+') as f:
+    with open(os.path.join(app_output_dir,str(pred_out["kernel_id"]) + "_all_info.out"),'a+') as f:
         f.write('!'.join([str(i) for i in list(pred_out.keys())])+'\n')  
         f.write('!'.join([str(i) for i in list(pred_out.values())])+'\n')  
 class Logger():
@@ -182,12 +148,12 @@ class Logger():
         self.is_active = is_active
         # mkdir if target dir is not exist
         output_dir = os.path.join(".","logs")
-        project_name = pred_out["app_path"].split("/")[-2]
-        project_output_dir = os.path.join(output_dir,project_name)
+        app_name = pred_out["app_name"]
+        app_output_dir = os.path.join(output_dir,app_name)
         # check output_dir is exist or not
-        if not os.path.exists(project_output_dir):
-            os.makedirs(project_output_dir, exist_ok=True)
-        self.f = open(os.path.join(project_output_dir,str(pred_out["kernel_id"]) + "_info.log"),'a+')
+        if not os.path.exists(app_output_dir):
+            os.makedirs(app_output_dir, exist_ok=True)
+        self.f = open(os.path.join(app_output_dir,str(pred_out["kernel_id"]) + "_info.log"),'a+')
     
     # 析构时关闭文件
     def __del__(self):
