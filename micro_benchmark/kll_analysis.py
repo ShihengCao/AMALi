@@ -15,7 +15,7 @@ block_sizes = []
 # 图1：Grid Size vs avg（按 block size 分组）
 plt.figure(figsize=(12, 8))
 unique_blocks = sorted(df["Block Size"].unique())
-
+intercept_list = []
 for i, bsize in enumerate(unique_blocks):
     group = df[df["Block Size"] == bsize]
     X = group["Grid Size"].values.reshape(-1, 1)
@@ -28,6 +28,7 @@ for i, bsize in enumerate(unique_blocks):
 
     slope = model.coef_[0]
     intercept = model.intercept_
+    intercept_list.append(intercept)
     r2 = r2_score(y, y_pred)
 
     slopes.append(slope)
@@ -36,7 +37,8 @@ for i, bsize in enumerate(unique_blocks):
     # 绘制散点 + 拟合直线
     plt.scatter(X, y, label=f"Block {bsize}", alpha=0.6)
     plt.plot(X, y_pred, label=f"Fit {bsize}, slope={slope:.2f}, R²={r2:.3f}")
-
+intercept_list_float = [float(f"{x:.4f}") for x in intercept_list]
+print(intercept_list_float, "\navg intercept:", float(f"{(sum(intercept_list_float)/len(intercept_list_float)):.4f}"))
 plt.xlabel("Grid Size")
 plt.ylabel("Kernel Launch Latency (cycles)")
 plt.title("Grid Size vs Latency (Linear Fit per Block Size)")
@@ -60,7 +62,7 @@ y_pred = quad_model.predict(X_poly)
 r2 = r2_score(y, y_pred)
 
 a, b, c = quad_model.coef_[2], quad_model.coef_[1], quad_model.intercept_
-print(f"二次拟合公式: slope = {a:.4e} * block_size^2 + {b:.4e} * block_size + {c:.4e}")
+print(f"quad fit: slope = {a:.4e} * block_size^2 + {b:.4e} * block_size + {c:.4e}")
 print(f"R² = {r2:.4f}")
 
 # 绘制图形
