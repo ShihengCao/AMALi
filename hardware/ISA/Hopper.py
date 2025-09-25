@@ -26,28 +26,28 @@ units_latency = {
 
     "SFU"               :  23,
     # for tensor core we use FMA/cycle instead and will calculate the latency later, the following values are useless
-    "iTCU"              :  320,
-    "hTCU"              :  320, # accumulator FP16
-    "fTCU"              :  320, # accumulator FP32
-    "dTCU"              :  320,
+    "iTCU"              :  512,
+    "hTCU"              :  512, # accumulator FP16
+    "fTCU"              :  512, # accumulator FP32
+    "dTCU"              :  512,
 
     "BRA"               :  4,
     #Memory Units Latencies
-    "dram_mem_access"   :   194,
+    "dram_mem_access"   :   192,
     "l1_cache_access"   :   40,
-    "l2_cache_access"   :   228,
-    "local_mem_access"  :   194,
-    "const_mem_access"  :   194,
+    "l2_cache_access"   :   225,
+    "local_mem_access"  :   192,
+    "const_mem_access"  :   192,
     "shared_mem_ld"     :   23,
     "shared_mem_st"     :   19,# ld 23 st 19
     "tex_mem_access"    :   194,
     "tex_cache_access"  :   86,
-    "atomic_operation"  :   245,
+    "atomic_operation"  :   325,
     #Kernel_launch_ovhd get from Accel-sim benchmark
-    "kernel_launch_ovhd"    :   1980,
-    "slope_alpha"   :  0.0036, # KLL model 
-    "slope_beta"   :  0.0366, # KLL model 
-    "slope_gamma"   :  1.1891, # KLL model 
+    "kernel_launch_ovhd"    :   4166.61,
+    "slope_alpha"   :  4.9561e-04, # KLL model 
+    "slope_beta"   :  -1.3946e-03, # KLL model 
+    "slope_gamma"   :  1.0081e+00, # KLL model 
 }
 
 initial_interval = {
@@ -208,6 +208,7 @@ sass_isa = {
     "WARPGROUPSET"      : "BRA", # new
     "UCGABAR_ARV"       : "BRA", # new !!
     "UCGABAR_WAIT"      : "BRA", # new !!
+    "USETMAXREG"        : "BRA", # new !!   
     "ACQBULK"           : "BRA",
     "BMOV"              : "BRA",
     "BPT"               : "BRA",
@@ -217,6 +218,7 @@ sass_isa = {
     "BRXU"              : "BRA",
     "BSSY"              : "BRA",
     "BSYNC"             : "BRA",
+    "SYNCS"             : "BRA", # new ~=!
     "CALL"              : "BRA",
     "CGAERRBAR"         : "BRA",
     "ELECT"             : "BRA",
@@ -233,6 +235,7 @@ sass_isa = {
     # "RTT"               : "BRA",
     "WARPSYNC"          : "BRA",
     "YIELD"             : "BRA",
+    "FENCE"             : "BRA", # new~=!
     # Miscellaneous Instructions
     "B2R"               : "iALU",
     "BAR"               : "iALU",

@@ -43,11 +43,16 @@ units_latency = {
     "tex_cache_access"  :   86,
     "atomic_operation"  :   245,
     #Kernel_launch_ovhd get from Accel-sim benchmark
-    "kernel_launch_ovhd"    :   1980,
-    "slope_alpha"   :  0.0036, # KLL model 
-    "slope_beta"   :  0.0366, # KLL model 
-    "slope_gamma"   :  1.1891, # KLL model 
+    "kernel_launch_ovhd"    :   2119,
+    "slope_alpha"   :  1.0956e-03, # KLL model  0.0036
+    "slope_beta"   :  -1.5389e-02, # KLL model  0.0366
+    "slope_gamma"   :  9.3524e-01, # KLL model 1.1891
+
 }
+'''
+[np.float64(2144.161494223563), np.float64(2125.694745571838), np.float64(2122.907881695402), np.float64(2082.075697965517)] avg intercept 2118.70995486408
+二次拟合公式: slope = 1.0956e-03 * block_size^2 + -1.5389e-02 * block_size + 9.3524e-01
+'''
 # we will calculate later in generate accelerator
 initial_interval = {
     # Initiation interval (II) = threadsPerWarp / #FULanes
