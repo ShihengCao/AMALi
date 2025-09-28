@@ -391,7 +391,7 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
         exit(0);
     } 
    
-    if (cbid == API_CUDA_cuLaunchKernel_ptsz || cbid == API_CUDA_cuLaunchKernel || cbid == API_CUDA_cuLaunchGrid) {
+    if (cbid == API_CUDA_cuLaunchKernel_ptsz || cbid == API_CUDA_cuLaunchKernel || cbid == API_CUDA_cuLaunchGrid|| cbid == API_CUDA_cuLaunchCooperativeKernel_ptsz || cbid == API_CUDA_cuLaunchCooperativeKernel || cbid == API_CUDA_cuLaunch) {
         cuLaunchKernel_params *p = (cuLaunchKernel_params *)params;
             if (!is_exit) {
                 pthread_mutex_lock(&mutex);
@@ -475,14 +475,100 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                 pthread_mutex_unlock(&mutex);
             }
 
-        }   
+    }   
+    else if(cbid == API_CUDA_cuLaunchKernelEx || cbid == API_CUDA_cuLaunchKernelEx_ptsz)
+    {
+        cuLaunchKernelEx_params *p = (cuLaunchKernelEx_params *)params;
+            if (!is_exit) {
+                pthread_mutex_lock(&mutex);
+                instrument_function_if_needed(ctx, p->f);
+                nvbit_enable_instrumented(ctx, p->f, true);
+                recv_thread_receiving = true;
+
+                cout<<"Kernel #"<<kernel_id<<"\n\n";
+
+                kernel_gridX = p->config->gridDimX;
+                kernel_gridY = p->config->gridDimY;
+                kernel_gridZ = p->config->gridDimZ;
+
+                string file_name = "./sass_traces/kernel_"+ to_string(kernel_id) + ".sass";
+                insts_trace_fp.open(file_name);
+
+            } else {
+                /* make sure current kernel is completed */
+                cudaDeviceSynchronize();
+                assert(cudaGetLastError() == cudaSuccess);
+
+                /* make sure we prevent re-entry on the nvbit_callback when issuing
+                * the flush_channel kernel */
+                skip_flag = true;
+
+                /* issue flush of channel so we are sure all the accesses
+                * have been pushed */
+                flush_channel<<<1, 1>>>();
+                cudaDeviceSynchronize();
+                assert(cudaGetLastError() == cudaSuccess);
+
+                /* unset the skip flag */
+                skip_flag = false;
+                
+                /* wait here until the receiving thread has not finished with the current kernel */
+                while (recv_thread_receiving) {
+                    pthread_yield();
+                }
+
+                int girdX = 0, gridY = 0, gridZ = 0, blockX = 0, blockY = 0, blockZ= 0,\
+                nregs=0, shmem_static_nbytes=0, shmem_dynamic_nbytes = 0, stream_id = 0;
+
+                CUDA_SAFECALL(cuFuncGetAttribute(&nregs, CU_FUNC_ATTRIBUTE_NUM_REGS, p->f)); // regs per threads
+                CUDA_SAFECALL(cuFuncGetAttribute(&shmem_static_nbytes,CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES, p->f));
+
+                girdX = p->config->gridDimX;
+                gridY = p->config->gridDimY;
+                gridZ = p->config->gridDimZ;
+                blockX = p->config->blockDimX;
+                blockY = p->config->blockDimY;
+                blockZ = p->config->blockDimZ;
+                stream_id = (uint64_t)p->config->hStream;
+                shmem_dynamic_nbytes = p->config->sharedMemBytes;
+
+                int num_ctas = girdX * gridY * gridZ;
+
+                int threads_per_cta = blockX * blockY * blockZ;
+                int tot_num_thread = num_ctas * threads_per_cta;
+                int tot_num_warps =  tot_num_thread/32;
+                if(tot_num_warps ==0)
+                    tot_num_warps = 1;
+
+                string kernel_name = nvbit_get_func_name(ctx, p->f, true);
+
+                app_config_fp << "kernel_" + to_string(kernel_id) <<" = {\n\n";
+                app_config_fp <<"\t\"kernel_name\"\t\t\t: \""<<kernel_name<<"\",\n";
+                app_config_fp <<"\t\"num_registers\"\t\t\t: "<<nregs<<",\n";
+                app_config_fp <<"\t\"shared_mem_bytes\"\t\t: "<<(shmem_static_nbytes+shmem_dynamic_nbytes)<<",\n";
+                app_config_fp <<"\t\"grid_size\"\t\t\t: "<<num_ctas<<",\n";
+                app_config_fp <<"\t\"block_size\"\t\t\t: "<<threads_per_cta<<",\n";
+                app_config_fp <<"\t\"cuda_stream_id\"\t\t: "<<stream_id<<"\n";
+                app_config_fp << "}\n\n";
+                
+                kernel_id++;
+                first_warp_exec = 0;
+                inst_count = 0;
+                reg_dependency_map.clear();
+                pred_dependency_map.clear();
+                insts_trace_fp.close();
+                
+                pthread_mutex_unlock(&mutex);
+            }
+    }
     else if (cbid == API_CUDA_cuMemcpyHtoD_v2 || cbid == API_CUDA_cuLaunchGridAsync || cbid == API_CUDA_cuGraphAddKernelNode || cbid == API_CUDA_cuGraphLaunch)
     {
         printf("nvbit_at_cuda_event: unhandled CUDA API call %s\n", name);
     }
     // else {
+    //     pass
     //     printf("nvbit_at_cuda_event: unhandled CUDA API call %s\n", name);
-    //     assert(0);
+    //     // assert(0);
     // }
 }
 
