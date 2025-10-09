@@ -13,8 +13,8 @@
 # Copyright: Open source, must acknowledge original author
 
 ##############################################################################
-from src.utils import uniform_insts_list, functional_units_list, rptv_warp_select
-from typing import Generator, Dict, List, Tuple
+from src.utils import functional_units_list, rptv_warp_select
+from typing import Generator
 import os
 
 def read_sass_trace_generator(sass_path: str) -> Generator[str, None, None]:
@@ -70,9 +70,9 @@ def parse(units_latency, sass_instructions, sass_path, logger):
         opcodeAndOption.pop(0)
         
         isOpcodeST = False
-        if opcode in uniform_insts_list: # add 'U' before register index in uniform instructions
-            for i in range(len(opcodeAndOption)):
-                opcodeAndOption[i] = 'U' + opcodeAndOption[i]
+        # if opcode in uniform_insts_list: # add 'U' before register index in uniform instructions
+        #     for i in range(len(opcodeAndOption)):
+        #         opcodeAndOption[i] = 'U' + opcodeAndOption[i]
         
         if "ST" in opcode:
             opcnt_dict["ST"] += 1

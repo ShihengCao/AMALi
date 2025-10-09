@@ -42,7 +42,7 @@ class Kernel():
 		self.sass_file_path = kernel_info["sass_file_path"]
 		## kernel local predictions outputs
 		self.pred_out = {}	
-		self.ISA = "SASS"
+		# self.ISA = "SASS"
 		self.Idle_cycle_method = "AMALi" # GCoM or AMALi
 		
 		pred_out = self.pred_out

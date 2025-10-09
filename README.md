@@ -19,7 +19,7 @@ python main.py --app {app_path} --config {config_name} -f -l {0,1}
 # simple use. The following will profiling with A100 config and app_name is 'nvidia'
 python main.py --app ~/Benchmarks/DeepBench-master/nvidia/ --config A100
 # or run with mpi, NOT test fully!!
-PATH=/home/caosh/mpich-install/bin:$PATH ; export PATH
+PATH=/path/to/mpich/mpich-install/bin:$PATH ; export PATH
 mpiexec -n {parallellism} python main.py --app {app_path} --config {config_name} --useMPI {0,1} --kernel {kernel_id} -f -l {0,1}
 ```
 
