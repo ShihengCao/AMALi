@@ -290,6 +290,8 @@ def main():
         if app_output_dir in os.listdir("./outputs"):
             complete_files = os.listdir(os.path.join("./outputs",app_output_dir))
             for file in complete_files:
+                if file.endswith(".out") == False:
+                    continue
                 cur_id = int(file.split('_')[0])
                 if cur_id not in app_kernels_id:
                     continue

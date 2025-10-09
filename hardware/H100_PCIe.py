@@ -22,7 +22,8 @@ uarch = {
     #   - Pascal: 60, 61
     #   - Volta: 70 
     #   - Turing: 75
-    #   - Ampere: 80, 86, 89
+    #   - Ampere: 80, 86, 
+    #   - Ada Lovelace 89，
     #   - Hopper: 90
     "compute_capabilty"                 :  90,
     
@@ -74,7 +75,7 @@ uarch = {
     "l2_cache_size"                     :  50 * 1024*1024, # [2]
     "l2_cache_line_size"                :  32,                 
     "l2_cache_associativity"            :  16,  
-    "l1_cache_bandwidth"                :  113.06, #(byte/clk/SM) get from Accel-sim microbenchmark
+    "l1_cache_bandwidth"                :  120.353, #(byte/clk/SM) get from Accel-sim microbenchmark
 
     # L2 total size 6144 KB, each subpartition is 96 KB. This gives ~ 64 memory parition
     "num_l2_partitions"	                :  80,

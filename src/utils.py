@@ -3,22 +3,22 @@ import numpy as np
 from sklearn.cluster import KMeans
 from scipy import special as sp
 
-functional_units_list = ["iALU", "fALU", "hALU", "dALU", 
-                         "SFU", "dSFU", 
-                         "LDST",
-                        #  "iTCU", "hTCU", "fTCU", "dTCU", 
-                         "BRA", "EXIT",]
+# functional_units_list = ["iALU", "fALU", "hALU", "dALU", 
+#                          "SFU", "dSFU", 
+#                          "LDST",
+#                         #  "iTCU", "hTCU", "fTCU", "dTCU", 
+#                          "BRA", "EXIT",]
 
-uniform_insts_list = ["R2UR","REDUX", "S2UR","UBMSK","UBREV","UCLEA","UF2FP",  "UFLO" ,"UIADD3" ,"UIADD3.64" ,"UIMAD" ,
-"UISETP", "ULDC", "ULEA","ULOP","ULOP3","ULOP32I","UP2UR","UMOV","UP2UR","UPLOP3","UPOPC","UPRMT","UPSETP","UR2UP",
-"USEL","USGXT","USHF","USHL","USHR","VOTEU",] 
+# uniform_insts_list = ["R2UR","REDUX", "S2UR","UBMSK","UBREV","UCLEA","UF2FP",  "UFLO" ,"UIADD3" ,"UIADD3.64" ,"UIMAD" ,
+# "UISETP", "ULDC", "ULEA","ULOP","ULOP3","ULOP32I","UP2UR","UMOV","UP2UR","UPLOP3","UPOPC","UPRMT","UPSETP","UR2UP",
+# "USEL","USGXT","USHF","USHL","USHR","VOTEU",] 
 
-def get_unit_idx(unit):
-    result = -1
-    for i in range(len(functional_units_list)):
-        if functional_units_list[i] == unit:
-            result = i
-    return result
+# def get_unit_idx(unit):
+#     result = -1
+#     for i in range(len(functional_units_list)):
+#         if functional_units_list[i] == unit:
+#             result = i
+#     return result
 
 def sm_id_str_to_int(sm_id_str):
     return int(sm_id_str.split('#')[0])
@@ -122,10 +122,10 @@ def print_output_info(pred_out, rptv_warp_GCoM_output):
     print("| kernel id:",pred_out["kernel_id"])
     print("| kernel name", pred_out["kernel_name"][:min(len(pred_out["kernel_name"]),20)])
     print(
-        "| simulation time:{:.4f}s\n| AMAT:{:.4f}\n| ACPAO:{:.4f}\n| ipc:{:.4f}".format(pred_out["simulation_time_memory"] + pred_out["simulation_time_compute"] + pred_out["simulation_time_parse"], 
+        "| simulation time:{:.4f}s\n| AMAT:{:.4f}\n| ACPAO:{:.4f}\n| cpi:{:.8f}".format(pred_out["simulation_time_memory"] + pred_out["simulation_time_compute"] + pred_out["simulation_time_parse"], 
         pred_out["AMAT"], 
         pred_out["ACPAO"], 
-        pred_out["ipc"]) 		
+        pred_out["cpi"]) 		
     )
     print("| Analytical model output:",rptv_warp_GCoM_output)
     print('+'+'-'*30)
