@@ -122,10 +122,10 @@ def print_output_info(pred_out, rptv_warp_GCoM_output):
     print("| kernel id:",pred_out["kernel_id"])
     print("| kernel name", pred_out["kernel_name"][:min(len(pred_out["kernel_name"]),20)])
     print(
-        "| simulation time:{:.4f}s\n| AMAT:{:.4f}\n| ACPAO:{:.4f}\n| ipc:{:.4f}".format(pred_out["simulation_time_memory"] + pred_out["simulation_time_compute"] + pred_out["simulation_time_parse"], 
+        "| simulation time:{:.4f}s\n| AMAT:{:.4f}\n| ACPAO:{:.4f}\n| cpi:{:.8f}".format(pred_out["simulation_time_memory"] + pred_out["simulation_time_compute"] + pred_out["simulation_time_parse"], 
         pred_out["AMAT"], 
         pred_out["ACPAO"], 
-        pred_out["ipc"]) 		
+        pred_out["cpi"]) 		
     )
     print("| Analytical model output:",rptv_warp_GCoM_output)
     print('+'+'-'*30)
