@@ -21,7 +21,7 @@
 import sys, os, getopt, importlib
 from simian import Simian, Entity
 from src.kernels import Kernel
-from src.post_process import parse_log, parse_out
+# from src.post_process import parse_log, parse_out
 
 def usage():
     print("\n[USAGE]\n\
@@ -205,9 +205,9 @@ def main():
                 import shutil
                 shutil.rmtree("./outputs/{}".format(app_name))
                 print("Deleted existing outputs directory")
-            if os.path.exists("./logs{}".format(app_name)):
+            if os.path.exists("./logs/{}".format(app_name)):
                 import shutil
-                shutil.rmtree("./logs{}".format(app_name))
+                shutil.rmtree("./logs/{}".format(app_name))
                 print("Deleted existing logs directory")
     ######################
     ## specific kernel? ##
@@ -328,10 +328,11 @@ def main():
             cur_kernel = Kernel(k_id, gpuNode, kernels_info[i])
             cur_kernel.kernel_call_GCoM(None, "Kernel", k_id)
     
-    print("complete analysis and start parsing output")
-    parse_log(app_name)
-    parse_out(app_name)
-    print("complete parsing")
+    # print("complete analysis and start parsing output")
+    # sleep(1)
+    # parse_log(app_name)
+    # parse_out(app_name)
+    # print("complete parsing")
 
 class GPUNode(object):
 	"""
