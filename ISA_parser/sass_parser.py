@@ -220,7 +220,7 @@ def parse(units_latency, sass_instructions, sass_path, logger):
     for key, value in sorted_opcnt:
         logger.write(key, value)
     logger.write("### SASS Trace Summary ###")
-    logger.write("number of sm:",len(task_list))
+    logger.write("number of CTA:",len(task_list))
     task_len_cnt = {}
     warp_num = 0
     for sm in task_list:

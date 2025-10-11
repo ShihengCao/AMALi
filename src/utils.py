@@ -3,22 +3,11 @@ import numpy as np
 from sklearn.cluster import KMeans
 from scipy import special as sp
 
-# functional_units_list = ["iALU", "fALU", "hALU", "dALU", 
-#                          "SFU", "dSFU", 
-#                          "LDST",
-#                         #  "iTCU", "hTCU", "fTCU", "dTCU", 
-#                          "BRA", "EXIT",]
-
-# uniform_insts_list = ["R2UR","REDUX", "S2UR","UBMSK","UBREV","UCLEA","UF2FP",  "UFLO" ,"UIADD3" ,"UIADD3.64" ,"UIMAD" ,
-# "UISETP", "ULDC", "ULEA","ULOP","ULOP3","ULOP32I","UP2UR","UMOV","UP2UR","UPLOP3","UPOPC","UPRMT","UPSETP","UR2UP",
-# "USEL","USGXT","USHF","USHL","USHR","VOTEU",] 
-
-# def get_unit_idx(unit):
-#     result = -1
-#     for i in range(len(functional_units_list)):
-#         if functional_units_list[i] == unit:
-#             result = i
-#     return result
+functional_units_list = ["iALU", "fALU", "hALU", "dALU", 
+                         "SFU", "dSFU", 
+                         "LDST",
+                        #  "iTCU", "hTCU", "fTCU", "dTCU", 
+                         "BRA", "EXIT",]
 
 def sm_id_str_to_int(sm_id_str):
     return int(sm_id_str.split('#')[0])
