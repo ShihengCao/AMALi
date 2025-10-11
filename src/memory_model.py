@@ -291,10 +291,7 @@ def private_SM_computation(SM_id, kernel_id, grid_size, num_SMs, mem_trace_dir_p
 
 def get_memory_perf(kernel_id, mem_trace_dir_path, grid_size, num_SMs, l1_cache_size, l1_cache_line_size, l1_cache_associativity,\
                     l2_cache_size, l2_cache_line_size, l2_cache_associativity, gmem_reqs):
-
-    blck_id = -1
     shared_trace = []
-    parallel_out_list = []
     umem_hit_rates_list = []
     gmem_hit_rates_lds_list = []
     gmem_hit_rates_list = []
