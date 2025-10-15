@@ -8,16 +8,16 @@ In shorts, how to use AMALi
 # trace apps
 LD_PRELOAD=/path/to/AMALi/tracing_tool/tracer.so {exe}
 # run analysis 
+# simple use. The following will profiling with A100 config and app_name is 'nvidia'
+python main.py --app ~/Benchmarks/DeepBench-master/nvidia/ --config A100
 # --app is the path of tracing files, and the last dir will be used as app_name
 # -f is force delete prevous outputs and logs of current app, 
 # -l control log mode is logging or not (default 1).
 python main.py --app {app_path} --config {config_name} --useMPI {0,1} --kernel {kernel_id} -f -l {0,1}
 # if do not use MPI
 python main.py --app {app_path} --config {config_name} --kernel {kernel_id} -f -l {0,1}
-# without kernel args, AMALi will analyze all kernel by default
+# without kernel_id args, AMALi will analyze all kernel by default
 python main.py --app {app_path} --config {config_name} -f -l {0,1}
-# simple use. The following will profiling with A100 config and app_name is 'nvidia'
-python main.py --app ~/Benchmarks/DeepBench-master/nvidia/ --config A100
 # or run with mpi, NOT test fully!!
 PATH=/path/to/mpich/mpich-install/bin:$PATH ; export PATH
 mpiexec -n {parallellism} python main.py --app {app_path} --config {config_name} --useMPI {0,1} --kernel {kernel_id} -f -l {0,1}
