@@ -140,6 +140,23 @@ sass_isa = {
     "HMMA"              : "hTCU",
     "BMMA"              : "iTCU", 
     "DMMA"              : "dTCU",
+    # Warpgroup Instructions
+    "BGMMA"             : "iTCU",
+    "HGMMA"             : "hTCU",
+    "IGMMA"             : "iTCU",
+    "QGMMA"             : "fTCU",
+    "WARPGROUP"         : "BRA",
+    "WARPGROUPSET"      : "BRA",
+    # Tensor Memory Access Instructions
+    "UBLKCP"            : "BRA",
+    "UBLKPF"            : "BRA",
+    "UBLKRED"           : "BRA",
+    "UTMACCTL"          : "BRA",
+    "UTMACMDFLUSH"      : "BRA",
+    "UTMALDG"           : "BRA",
+    "UTMAPF"            : "BRA",
+    "UTMAREDG"          : "BRA",
+    "UTMASTG"           : "BRA",
     # Conversion Instructions
     "F2F"               : "iALU",
     "F2I"               : "iALU",
@@ -195,20 +212,12 @@ sass_isa = {
     "USHL"              : "iALU",
     "USHR"              : "iALU",
     "VOTEU"             : "iALU",
-    # new !! warpgroup instructions
-    "BGMMA"             : "fTCU",
-    "HGMMA"             : "fTCU",
-    "IGMMA"             : "iTCU",
-    "QGMMA"             : "fTCU",
-    # new TMA instructions
-    # "UBLKCP"            : "LDST",
 
     #Control Instructions
-    "WARPGROUP"         : "BRA", # new
-    "WARPGROUPSET"      : "BRA", # new
     "UCGABAR_ARV"       : "BRA", # new !!
     "UCGABAR_WAIT"      : "BRA", # new !!
-    "USETMAXREG"        : "BRA", # new !!   
+    "USETMAXREG"        : "BRA", # new !!  
+    "USETSHMSZ"         : "BRA", # new !!
     "ACQBULK"           : "BRA",
     "BMOV"              : "BRA",
     "BPT"               : "BRA",
@@ -220,6 +229,9 @@ sass_isa = {
     "BSYNC"             : "BRA",
     "SYNCS"             : "BRA", # new ~=!
     "CALL"              : "BRA",
+    "CCTL"              : "BRA",
+    "CCTLL"             : "BRA",
+    "CCTLT"             : "BRA",
     "CGAERRBAR"         : "BRA",
     "ELECT"             : "BRA",
     "ENDCOLLECTIVE"     : "BRA",
@@ -232,10 +244,11 @@ sass_isa = {
     "PREEXIT"           : "BRA",# new ~~
     "RET"               : "BRA",
     "RPCMOV"            : "BRA",
-    # "RTT"               : "BRA",
+    # "REDAS"             : "BRA",
     "WARPSYNC"          : "BRA",
     "YIELD"             : "BRA",
     "FENCE"             : "BRA", # new~=!
+    "MATCH"             : "BRA", # new ~=!
     # Miscellaneous Instructions
     "B2R"               : "iALU",
     "BAR"               : "iALU",
