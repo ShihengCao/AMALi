@@ -13,7 +13,7 @@
 # Copyright: Open source, must acknowledge original author
 
 ##############################################################################
-from src.utils import functional_units_list, rptv_warp_select
+from src.utils import functional_units_list, rptv_warp_select, sm_id_str_to_int
 from typing import Generator
 import os
 
@@ -277,4 +277,33 @@ def parse(units_latency, sass_instructions, sass_path, logger):
     logger.write(f"Representative warp - SM ID: {original_sm_and_warp_ids[0]}, Warp ID: {original_sm_and_warp_ids[1]}")
     print(f"Length of task_list of representative warp: {len(task_list[original_sm_and_warp_ids[0]][original_sm_and_warp_ids[1]])}")
     logger.write(f"Length of task_list of representative warp: {len(task_list[original_sm_and_warp_ids[0]][original_sm_and_warp_ids[1]])}")
-    return task_list, count_gmem_reqs, original_sm_and_warp_ids
+
+    # total_warp_num = 0
+    # for CTA_id in task_list:
+    #     total_warp_num += len(task_list[CTA_id])
+    rptv_warp_task_list = task_list[original_sm_and_warp_ids[0]][original_sm_and_warp_ids[1]]
+
+    total_warp_num = 0
+    # scan all CTA and Count warp number in all SM and sub-cores
+    warp_num_count = {}
+    warp_instr_num_count = {}
+    active_SMs_set = set()
+    for CTA_id in task_list:
+        for warp_id in task_list[CTA_id]:
+            sm_id = sm_id_str_to_int(CTA_id)
+            active_SMs_set.add(sm_id)
+            if sm_id not in warp_num_count:
+                warp_num_count[sm_id] = [0] * 4
+                warp_instr_num_count[sm_id] = [0] * 4
+            warp_num_count[sm_id][warp_id % 4] += 1
+            warp_instr_num_count[sm_id][warp_id % 4] += len(task_list[CTA_id][warp_id])
+        total_warp_num += len(task_list[CTA_id])
+    active_SMs_num = len(active_SMs_set)
+
+    logger.write("### Warp number and intr number distribution ###")
+    for sm_id in sorted(warp_num_count.keys()):
+        logger.write("SM {:d} warp number:".format(sm_id), warp_num_count[sm_id])
+        logger.write("SM {:d} warp instruction number:".format(sm_id), warp_instr_num_count[sm_id])
+    logger.write("### Warp number and intr number distribution ###")
+
+    return rptv_warp_task_list, count_gmem_reqs, original_sm_and_warp_ids, total_warp_num, active_SMs_num

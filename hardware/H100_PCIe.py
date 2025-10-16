@@ -57,7 +57,7 @@ uarch = {
     # warp scheduler units per SM
     "num_warp_schedulers_per_SM"        :  4, # [4]
     # instructions issued per warp
-    "num_inst_dispatch_units_per_SM"    :  1, # [2]
+    # "num_inst_dispatch_units_per_SM"    :  1, # [2]
 
     # L1 cache configs can be skipped if this option is True
     "l1_cache_bypassed"                 :  False,

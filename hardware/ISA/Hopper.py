@@ -31,7 +31,7 @@ units_latency = {
     "fTCU"              :  512, # accumulator FP32
     "dTCU"              :  512,
 
-    "BRA"               :  4,
+    "BRA"               :  1,
     #Memory Units Latencies
     "dram_mem_access"   :   192,
     "l1_cache_access"   :   40,
@@ -103,7 +103,7 @@ sass_isa = {
     "VIADD"             : "iALU",
     "VIADDMNMX"         : "iALU",
     "VIMNMX"            : "iALU",
-    "VIMXMX3"           : "iALU",
+    "VIMNMX3"           : "iALU",
     # "CCTL"              : "iALU",
     # Single-Precision Floating Instructions
     "FADD"              : "fALU",

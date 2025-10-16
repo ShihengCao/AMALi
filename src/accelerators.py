@@ -101,10 +101,10 @@ class Accelerator(object):
 		except:
 			print_config_error("num_warp_schedulers_per_SM")
 
-		try:
-			self.num_inst_dispatch_units_per_SM = gpu_configs["num_inst_dispatch_units_per_SM"]
-		except:
-			print_config_error("num_inst_dispatch_units_per_SM")
+		# try:
+		# 	self.num_inst_dispatch_units_per_SM = gpu_configs["num_inst_dispatch_units_per_SM"]
+		# except:
+		# 	print_config_error("num_inst_dispatch_units_per_SM")
 
 		try:	
 			self.l1_cache_bypassed = gpu_configs["l1_cache_bypassed"]
@@ -269,7 +269,7 @@ class Accelerator(object):
 		self.initial_interval['dALU'] = self.warp_size / (self.num_DP_units_per_SM / self.num_warp_schedulers_per_SM)
 		self.initial_interval['SFU'] = self.warp_size / (self.num_SF_units_per_SM / self.num_warp_schedulers_per_SM)
 		self.initial_interval['LDST'] = self.warp_size / (self.num_LDS_units_per_SM / self.num_warp_schedulers_per_SM)
-		self.initial_interval['BRA'] = self.warp_size / (self.num_BRA_units_per_SM / self.num_warp_schedulers_per_SM)
+		self.initial_interval['BRA'] = 0 # self.warp_size / (self.num_BRA_units_per_SM / self.num_warp_schedulers_per_SM)
 		self.initial_interval['TEX'] = self.warp_size / (self.num_TEX_units_per_SM / self.num_warp_schedulers_per_SM)
 
 	def update_shared_mem(self, shared_mem_bytes):
