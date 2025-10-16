@@ -62,8 +62,7 @@ class Kernel():
 		pred_out["simulation_time_parse"] = 0.0
 		pred_out["simulation_time_memory"] = 0.0
 		pred_out["simulation_time_compute"] = 0.0
-		pred_out["grid_size"]  = self.kernel_grid_size # the amount of blocks in the grid.
-		# pred_out["active_SMs"] = min(self.acc.num_SMs, pred_out["grid_size"]) # if #blocks > #SMs, then all SM will be active. else active as many SMs as the #blocks ! not correct 108 SM with 128 grid size may allocated 2 thread blocks per SM result in 64 active SMs	
+		pred_out["grid_size"]  = self.kernel_grid_size # the amount of blocks in the grid.	
 		pred_out["active_SMs"] = 0 # will be updated later in kernel_call_GCoM
 
 		self.logger = Logger(self.pred_out, kernel_info["log"])
@@ -100,8 +99,6 @@ class Kernel():
 		
 		# update shared memory size depending on the application configuration
 		self.acc.update_shared_mem(ceil(self.kernel_smem_size, self.acc.smem_allocation_size) * pred_out["allocated_active_blocks_per_SM"])
-		# pred_out["concurrent_warps_per_SM"] = pred_out["allocated_active_blocks_per_SM"] * pred_out["allocated_active_warps_per_block"]
-		# pred_out["concurrent_warps_per_sub_core"] = ceil(pred_out["concurrent_warps_per_SM"] / self.acc.num_warp_schedulers_per_SM, 1)		
 
 		# calculate kernel launch latency
 		slope = self.acc.slope_alpha * pred_out["allocated_active_warps_per_block"] ** 2 \
@@ -113,7 +110,7 @@ class Kernel():
 		tic = time.time()
 
 		sass_parser = importlib.import_module("ISA_parser.sass_parser")
-		self.kernel_tasklist, gmem_reqs, represetative_sm_warp_pair = sass_parser.parse(units_latency = self.acc.units_latency, sass_instructions = self.acc.sass_isa,\
+		self.kernel_tasklist, gmem_reqs, represetative_sm_warp_pair, total_warp_num, pred_out["active_SMs"] = sass_parser.parse(units_latency = self.acc.units_latency, sass_instructions = self.acc.sass_isa,\
 															sass_path = self.sass_file_path, logger = self.logger)
 		toc = time.time()
 		pred_out["simulation_time_parse"] = (toc - tic)
@@ -181,7 +178,7 @@ class Kernel():
 		pred_out.update(memory_stats_dict)
 		###### ---- compute performance predictions ---- ######
 		tic = time.time()
-		rptv_warp_GCoM_output = self.calculate_GCoM(represetative_sm_warp_pair, pred_out)
+		rptv_warp_GCoM_output = self.calculate_GCoM(represetative_sm_warp_pair, total_warp_num, pred_out)
 		# calculate the simulation time
 		toc = time.time()
 		# fill up the pred_out values
@@ -199,29 +196,29 @@ class Kernel():
 		# print output info		
 		print_output_info(pred_out, rptv_warp_GCoM_output)
 	
-	def calculate_GCoM(self, represetative_sm_warp_pair:tuple, pred_out:dict,):
-		total_warp_num = 0
-		# scan all CTA and Count warp number in all SM and sub-cores
-		warp_num_count = []
-		warp_instr_num_count = []
-		active_SMs_set = set()
-		for _ in range(self.acc.num_SMs):
-			warp_num_count.append([0] * self.acc.num_warp_schedulers_per_SM)
-			warp_instr_num_count.append([0] * self.acc.num_warp_schedulers_per_SM)
-		for CTA_id in self.kernel_tasklist:
-			for warp_id in self.kernel_tasklist[CTA_id]:
-				sm_id = sm_id_str_to_int(CTA_id)
-				active_SMs_set.add(sm_id)
-				warp_num_count[sm_id][warp_id % self.acc.num_warp_schedulers_per_SM] += 1
-				warp_instr_num_count[sm_id][warp_id % self.acc.num_warp_schedulers_per_SM] += len(self.kernel_tasklist[CTA_id][warp_id])
-			total_warp_num += len(self.kernel_tasklist[CTA_id])
-		pred_out["active_SMs"] = len(active_SMs_set)
-		# print warp num and instr num distribution across SMs and sub-cores
-		self.logger.write("### Warp number and intr number distribution ###")
-		for sm_id in range(self.acc.num_SMs):
-			self.logger.write("SM {:d} warp number:".format(sm_id), warp_num_count[sm_id])
-			self.logger.write("SM {:d} warp instruction number:".format(sm_id), warp_instr_num_count[sm_id])
-		self.logger.write("### Warp number and intr number distribution ###")
+	def calculate_GCoM(self, represetative_sm_warp_pair:tuple, total_warp_num:int, pred_out:dict,):
+		# total_warp_num = 0
+		# # scan all CTA and Count warp number in all SM and sub-cores
+		# warp_num_count = []
+		# warp_instr_num_count = []
+		# active_SMs_set = set()
+		# for _ in range(self.acc.num_SMs):
+		# 	warp_num_count.append([0] * self.acc.num_warp_schedulers_per_SM)
+		# 	warp_instr_num_count.append([0] * self.acc.num_warp_schedulers_per_SM)
+		# for CTA_id in self.kernel_tasklist:
+		# 	for warp_id in self.kernel_tasklist[CTA_id]:
+		# 		sm_id = sm_id_str_to_int(CTA_id)
+		# 		active_SMs_set.add(sm_id)
+		# 		warp_num_count[sm_id][warp_id % self.acc.num_warp_schedulers_per_SM] += 1
+		# 		warp_instr_num_count[sm_id][warp_id % self.acc.num_warp_schedulers_per_SM] += len(self.kernel_tasklist[CTA_id][warp_id])
+		# 	total_warp_num += len(self.kernel_tasklist[CTA_id])
+		# pred_out["active_SMs"] = len(active_SMs_set)
+		# # print warp num and instr num distribution across SMs and sub-cores
+		# self.logger.write("### Warp number and intr number distribution ###")
+		# for sm_id in range(self.acc.num_SMs):
+		# 	self.logger.write("SM {:d} warp number:".format(sm_id), warp_num_count[sm_id])
+		# 	self.logger.write("SM {:d} warp instruction number:".format(sm_id), warp_instr_num_count[sm_id])
+		# self.logger.write("### Warp number and intr number distribution ###")
 		# find the represetative warp based on the represetative index
 		rptv_sm_hashtag_CTA_id, rptv_warp_id = represetative_sm_warp_pair[0], represetative_sm_warp_pair[1]
 		rptv_SM_id = sm_id_str_to_int(rptv_sm_hashtag_CTA_id)		
@@ -258,7 +255,7 @@ class Kernel():
 		# max_instr_num_SM = max([sum(warp_instr_num_count[sm_id]) for sm_id in range(self.acc.num_SMs)])
 		# max_instr_num_sub_core = max([max(warp_instr_num_count[sm_id]) for sm_id in range(self.acc.num_SMs)])
 		# initialize the representative warp
-		rptv_warp = Warp(0, self.acc, self.kernel_tasklist[rptv_sm_hashtag_CTA_id][rptv_warp_id], 
+		rptv_warp = Warp(0, self.acc, self.kernel_tasklist, 
 				   self.kernel_id_real, rptv_SM_id , rptv_warp_id, pred_out["AMAT"], pred_out["ACPAO"])
 		rptv_warp_GCoM_output = None
 		# rptv_SM_warps_num = sum(warp_num_count[rptv_SM_id])
@@ -286,8 +283,8 @@ class Kernel():
 													pred_out["umem_hit_rate"])
 		print(rptv_warp_GCoM_output)
 		self.logger.write("rptv_warp_GCoM_output:", rptv_warp_GCoM_output)
-		idle_ij_output = None
-		idle_i_output = None
+		# idle_ij_output = None
+		# idle_i_output = None
 		# if self.Idle_cycle_method == "GCoM":
 		# 	# update the idle ij cycles based on the max warp number in a sub-core of rptv SM
 		# 	if max_warp_per_sub_core > mean_warp_per_sub_core:
