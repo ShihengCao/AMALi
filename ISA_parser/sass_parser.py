@@ -15,7 +15,11 @@
 ##############################################################################
 from src.utils import functional_units_list, rptv_warp_select, sm_id_str_to_int
 from typing import Generator
+from collections import Counter
 import os
+import numpy as np
+import math
+
 
 def read_sass_trace_generator(sass_path: str) -> Generator[str, None, None]:
     """
@@ -164,7 +168,23 @@ def parse(units_latency, sass_instructions, sass_path, logger):
                         print("[Error] Unknown HMMA instruction")
                     
                     if "BF16" in opcodeAndOption:
-                        unit = "bTCU"
+                        unit = "hTCU"
+                    elif "F32" in opcodeAndOption:
+                        unit = "fTCU"
+                    else:
+                        unit = "hTCU"
+                    latency = flops
+                elif "GMMA" in opcode:
+                    tensor_size_modifier = opcodeAndOption[0]
+                    math_expression = tensor_size_modifier.replace('x', '*')
+                    try:
+                        result = eval(math_expression)
+                        flops = int(result // 4)
+                    except Exception as e:
+                        print(f"[Error] Invalid tensor size modifier expression: {tensor_size_modifier}")
+                        exit(0)
+                    if "BF16" in opcodeAndOption:
+                        unit = "hTCU"
                     elif "F32" in opcodeAndOption:
                         unit = "fTCU"
                     else:
@@ -246,8 +266,6 @@ def parse(units_latency, sass_instructions, sass_path, logger):
         logger.write("task len: {:d} number: {:d}".format(key,value))
     # end logging 
     # select representative warp using kmean clustering   
-    import numpy as np
-    from collections import Counter
 
     def transform_task_list(task_list, functional_units_list):
         flattened_warps = []
@@ -299,11 +317,55 @@ def parse(units_latency, sass_instructions, sass_path, logger):
             warp_instr_num_count[sm_id][warp_id % 4] += len(task_list[CTA_id][warp_id])
         total_warp_num += len(task_list[CTA_id])
     active_SMs_num = len(active_SMs_set)
-
+    max_sub_core_instr_num = max([max(warp_instr_num_count[sm_id]) for sm_id in warp_instr_num_count])
     logger.write("### Warp number and intr number distribution ###")
     for sm_id in sorted(warp_num_count.keys()):
         logger.write("SM {:d} warp number:".format(sm_id), warp_num_count[sm_id])
         logger.write("SM {:d} warp instruction number:".format(sm_id), warp_instr_num_count[sm_id])
     logger.write("### Warp number and intr number distribution ###")
+    # evaluate balance of warp_num_count across sub-cores
+    WARP_BALANCE_THRESHOLD = 0.2  # allowed relative max deviation from mean (20%)
 
-    return rptv_warp_task_list, count_gmem_reqs, original_sm_and_warp_ids, total_warp_num, active_SMs_num
+    def is_counts_balanced(counts, threshold):
+        if not counts:
+            return True, 0.0
+        mean = sum(counts) / len(counts)
+        if mean == 0:
+            # if all zeros -> balanced, otherwise not
+            all_zero = all(c == 0 for c in counts)
+            return all_zero, 0.0 if all_zero else float('inf')
+        max_rel_dev = max(abs(c - mean) for c in counts) / mean
+        return max_rel_dev <= threshold, max_rel_dev
+
+    logger.write("### Warp number balance check ###")
+    overall_counts = []
+    unbalanced_sms = []
+    for sm_id in sorted(warp_num_count.keys()):
+        counts = warp_num_count[sm_id]
+        overall_counts.extend(counts)
+        balanced, max_rel = is_counts_balanced(counts, WARP_BALANCE_THRESHOLD)
+        logger.write(f"SM {sm_id} warp counts:", counts)
+        logger.write(f"SM {sm_id} balanced within {WARP_BALANCE_THRESHOLD*100:.1f}%?:", balanced, f"(max_rel_dev={max_rel:.3f})")
+        if not balanced:
+            unbalanced_sms.append((sm_id, counts, max_rel))
+
+    # overall metric across all sub-cores on all SMs
+    if overall_counts:
+        mean_all = sum(overall_counts) / len(overall_counts)
+        std_all = math.sqrt(sum((c - mean_all) ** 2 for c in overall_counts) / len(overall_counts))
+        cov_all = std_all / mean_all if mean_all != 0 else float('inf')
+        overall_balanced = cov_all <= WARP_BALANCE_THRESHOLD
+        logger.write("Overall sub-core coefficient of variation (std/mean):", f"{cov_all:.3f}")
+        logger.write(f"Overall balanced within {WARP_BALANCE_THRESHOLD*100:.1f}%?:", overall_balanced)
+    else:
+        logger.write("No warp counts available for overall balance check.")
+
+    if unbalanced_sms:
+        logger.write("Unbalanced SMs (SM id, counts, max_rel_dev):")
+        for sm_id, counts, max_rel in unbalanced_sms:
+            logger.write(sm_id, counts, f"max_rel_dev={max_rel:.3f}")
+    else:
+        logger.write("All SMs are balanced according to the threshold.")
+    logger.write("### Warp number balance check ###")
+
+    return rptv_warp_task_list, count_gmem_reqs, original_sm_and_warp_ids, total_warp_num, active_SMs_num, unbalanced_sms, max_sub_core_instr_num

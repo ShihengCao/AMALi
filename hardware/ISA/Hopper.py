@@ -29,6 +29,7 @@ units_latency = {
     "iTCU"              :  512,
     "hTCU"              :  512, # accumulator FP16
     "fTCU"              :  512, # accumulator FP32
+    "bTCU"              :  1024, # accumulator INT8
     "dTCU"              :  512,
 
     "BRA"               :  1,

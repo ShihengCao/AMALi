@@ -110,7 +110,7 @@ class Kernel():
 		tic = time.time()
 
 		sass_parser = importlib.import_module("ISA_parser.sass_parser")
-		self.kernel_tasklist, gmem_reqs, represetative_sm_warp_pair, total_warp_num, pred_out["active_SMs"] = sass_parser.parse(units_latency = self.acc.units_latency, sass_instructions = self.acc.sass_isa,\
+		self.kernel_tasklist, gmem_reqs, represetative_sm_warp_pair, total_warp_num, pred_out["active_SMs"], unbanlance_sms, max_sub_core_instr_from_traces = sass_parser.parse(units_latency = self.acc.units_latency, sass_instructions = self.acc.sass_isa,\
 															sass_path = self.sass_file_path, logger = self.logger)
 		toc = time.time()
 		pred_out["simulation_time_parse"] = (toc - tic)
@@ -178,7 +178,7 @@ class Kernel():
 		pred_out.update(memory_stats_dict)
 		###### ---- compute performance predictions ---- ######
 		tic = time.time()
-		rptv_warp_GCoM_output = self.calculate_GCoM(represetative_sm_warp_pair, total_warp_num, pred_out)
+		rptv_warp_GCoM_output = self.calculate_GCoM(represetative_sm_warp_pair, total_warp_num, pred_out, unbanlance_sms, max_sub_core_instr_from_traces)
 		# calculate the simulation time
 		toc = time.time()
 		# fill up the pred_out values
@@ -196,7 +196,7 @@ class Kernel():
 		# print output info		
 		print_output_info(pred_out, rptv_warp_GCoM_output)
 	
-	def calculate_GCoM(self, represetative_sm_warp_pair:tuple, total_warp_num:int, pred_out:dict,):
+	def calculate_GCoM(self, represetative_sm_warp_pair:tuple, total_warp_num:int, pred_out:dict,unbanlance_sms:list, max_sub_core_instr_from_traces:int):
 		# total_warp_num = 0
 		# # scan all CTA and Count warp number in all SM and sub-cores
 		# warp_num_count = []
@@ -264,7 +264,7 @@ class Kernel():
 		# run interval analysis on the represetative warp
 		interval_analysis_result = rptv_warp.interval_analyze()
 		pred_out["warps_instructions_executed"] = rptv_warp.current_inst * total_warp_num # used in calculating cpi
-		max_instr_sub_core = rptv_warp.current_inst * max_warp_per_SM // self.acc.num_warp_schedulers_per_SM
+		max_instr_sub_core = rptv_warp.current_inst * max_warp_per_SM // self.acc.num_warp_schedulers_per_SM if unbanlance_sms else max_sub_core_instr_from_traces
 		gcom_arg_CTA = min(mean_CTA_per_SM, pred_out["allocated_active_blocks_per_SM"])
 		gcom_arg_SM_warp_num = gcom_arg_CTA * pred_out["allocated_active_warps_per_block"]
 		gcom_arg_sub_core_warp_num = max(gcom_arg_SM_warp_num // self.acc.num_warp_schedulers_per_SM, 1)
