@@ -10,6 +10,7 @@ LD_PRELOAD=/path/to/AMALi/tracing_tool/tracer.so {exe}
 # run analysis 
 # simple use. The following will profiling with A100 config and app_name is 'nvidia'
 python main.py --app ~/Benchmarks/DeepBench-master/nvidia/ --config A100
+python run_post_process.py nvidia # this will parse log and generate .csv file in output/nvidia/
 # --app is the path of tracing files, and the last dir will be used as app_name
 # -f is force delete prevous outputs and logs of current app, 
 # -l control log mode is logging or not (default 1).
