@@ -5,7 +5,7 @@ from scipy import special as sp
 
 functional_units_list = ["iALU", "fALU", "hALU", "dALU", 
                          "SFU", "dSFU", 
-                         "LDST",
+                         "LDST", "Uniform",
                         #  "iTCU", "hTCU", "fTCU", "dTCU", 
                          "BRA", "EXIT",]
 
