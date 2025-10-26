@@ -240,10 +240,10 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
             int is_glob_loc = 0;
             int pred_num = -1;
             int mref_id = 0;
-            int dst_oprnd = -1;
-            int dst_oprnd_type = -1;
-            int src_oprnds[5] = {-1};
-            int src_oprnds_type[5] = {-1};     
+            int dst_oprnd = -10;
+            int dst_oprnd_type = -10;
+            int src_oprnds[5] = {-10};
+            int src_oprnds_type[5] = {-10};     
             /*
             operands types:
                 1 = REG & UREG
