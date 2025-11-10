@@ -40,6 +40,7 @@ class Kernel():
 		self.kernel_num_regs = kernel_info["num_regs"]
 		self.kernel_smem_size = kernel_info["smem_size"]
 		self.sass_file_path = kernel_info["sass_file_path"]
+		self.external_rptv_warp_selector = kernel_info["external_rptv_warp_selector"]
 		## kernel local predictions outputs
 		self.pred_out = {}	
 		self.Idle_cycle_method = "AMALi" # GCoM or AMALi
@@ -111,7 +112,7 @@ class Kernel():
 
 		sass_parser = importlib.import_module("ISA_parser.sass_parser")
 		self.kernel_tasklist, gmem_reqs, represetative_sm_warp_pair, total_warp_num, pred_out["active_SMs"], unbanlance_sms, max_sub_core_instr_from_traces = sass_parser.parse(units_latency = self.acc.units_latency, sass_instructions = self.acc.sass_isa,\
-															sass_path = self.sass_file_path, logger = self.logger)
+															sass_path = self.sass_file_path, logger = self.logger, external_rptv_warp_selector = self.external_rptv_warp_selector)
 		toc = time.time()
 		pred_out["simulation_time_parse"] = (toc - tic)
 		# return -1			
