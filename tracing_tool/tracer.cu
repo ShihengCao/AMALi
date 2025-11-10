@@ -518,7 +518,7 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                 }
 
                 int girdX = 0, gridY = 0, gridZ = 0, blockX = 0, blockY = 0, blockZ= 0,\
-                nregs=0, shmem_static_nbytes=0, shmem_dynamic_nbytes = 0, stream_id = 0;
+                nregs=0, shmem_static_nbytes=0, shmem_dynamic_nbytes = 0, stream_id = 0, clusterX=0, clusterY=0, clusterZ=0;
 
                 CUDA_SAFECALL(cuFuncGetAttribute(&nregs, CU_FUNC_ATTRIBUTE_NUM_REGS, p->f)); // regs per threads
                 CUDA_SAFECALL(cuFuncGetAttribute(&shmem_static_nbytes,CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES, p->f));
@@ -529,12 +529,23 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                 blockX = p->config->blockDimX;
                 blockY = p->config->blockDimY;
                 blockZ = p->config->blockDimZ;
+                if (p->config->numAttrs > 0 && p->config->attrs != NULL) {
+                    for (unsigned int i = 0; i < p->config->numAttrs; ++i) {
+                        if (p->config->attrs[i].id == CU_LAUNCH_ATTRIBUTE_CLUSTER_DIMENSION) {
+                            clusterX = p->config->attrs[i].value.clusterDim.x;
+                            clusterY = p->config->attrs[i].value.clusterDim.y;
+                            clusterZ = p->config->attrs[i].value.clusterDim.z;
+                            break;
+                        }
+                    }
+                }
                 stream_id = (uint64_t)p->config->hStream;
                 shmem_dynamic_nbytes = p->config->sharedMemBytes;
 
                 int num_ctas = girdX * gridY * gridZ;
 
                 int threads_per_cta = blockX * blockY * blockZ;
+                int cluster_size = clusterX * clusterY * clusterZ;
                 int tot_num_thread = num_ctas * threads_per_cta;
                 int tot_num_warps =  tot_num_thread/32;
                 if(tot_num_warps ==0)
@@ -548,6 +559,9 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                 app_config_fp <<"\t\"shared_mem_bytes\"\t\t: "<<(shmem_static_nbytes+shmem_dynamic_nbytes)<<",\n";
                 app_config_fp <<"\t\"grid_size\"\t\t\t: "<<num_ctas<<",\n";
                 app_config_fp <<"\t\"block_size\"\t\t\t: "<<threads_per_cta<<",\n";
+                if(cluster_size > 0){
+                    app_config_fp <<"\t\"cluster_size\"\t\t\t: "<<cluster_size<<",\n";
+                }
                 app_config_fp <<"\t\"cuda_stream_id\"\t\t: "<<stream_id<<"\n";
                 app_config_fp << "}\n\n";
                 

@@ -46,13 +46,14 @@ def usage():
     Example:\n\
     python main.py -a ./apps/your_app -c A100 -k 1 -um 1 -l 1 -f\n") 
 
-def get_current_kernel_info(kernel_id, app_name, app_path, app_config, log):
+def get_current_kernel_info(kernel_id, app_name, app_path, app_config, log, external_rptv_warp_selector=None):
 
     current_kernel_info = {}
     current_kernel_info["app_path"] = app_path
     current_kernel_info["app_name"] = app_name
     current_kernel_info["kernel_id"] = kernel_id
     current_kernel_info["log"] = log
+    current_kernel_info["external_rptv_warp_selector"] = os.path.join(external_rptv_warp_selector,kernel_id+'_info.log') if external_rptv_warp_selector else None
 
     ###########################
     ## kernel configurations ##
@@ -98,8 +99,13 @@ def get_current_kernel_info(kernel_id, app_name, app_path, app_config, log):
     except:
         print(str("\n[Error]\n")+str("\"num_registers\" configuration is missing"))
         sys.exit(1)
+    
+    if "cluster_size" in kernel_config:
+        kernel_cluster_size = kernel_config["cluster_size"]
+    else:
+        kernel_cluster_size = 1
     current_kernel_info["num_regs"] = kernel_num_regs
-
+    current_kernel_info["cluster_size"] = kernel_cluster_size
     ##################
     ## memory trace ##
     ##################
@@ -141,11 +147,12 @@ def main():
     kernel_id = -1
     kernels_info = []
     instructions_type = "SASS"
+    external_rptv_warp_selector = None
 
     full_cmd_arguments = sys.argv
     argument_list = full_cmd_arguments[1:]
-    short_options = "h:a:n:c:k:um:l:f"
-    long_options = ["help", "app=", "name=", "config=", "kernel=", "useMPI=", "log=", "force_delete"]
+    short_options = "ha:n:c:k:u:l:fe:"
+    long_options = ["help", "app=", "name=", "config=", "kernel=", "useMPI=", "log=", "force_delete", "external_selector="]
 
     try:
         arguments, values = getopt.getopt(argument_list, short_options, long_options)
@@ -160,7 +167,7 @@ def main():
             if current_argument in ("-h", "--help"):
                 usage()
                 sys.exit(2)
-    elif len(argument_list) > 11 or len(argument_list) < 2:
+    elif len(argument_list) > 13 or len(argument_list) < 2:
         print("\n[Error]\nincorrect number arguments")
         usage()
         sys.exit(1)
@@ -192,7 +199,7 @@ def main():
             gpu_config_file = current_value
         elif current_argument in ("-k", "--kernel"):
             kernel_id = current_value
-        elif current_argument in ("-um", "--useMPI"):
+        elif current_argument in ("-u", "--useMPI"):
             useMPI = True if current_value == '1' else False
         elif current_argument in ("-l", "--log"):
             log = True if current_value == '1' else False
@@ -209,6 +216,9 @@ def main():
                 import shutil
                 shutil.rmtree("./logs/{}".format(app_name))
                 print("Deleted existing logs directory")
+        elif current_argument in ("-e", "--external_selector"):
+            external_rptv_warp_selector = current_value
+    # exit()
     ######################
     ## specific kernel? ##
     ######################
@@ -297,10 +307,10 @@ def main():
                     continue
                 app_kernels_id.remove(cur_id)
         for kernel_id in app_kernels_id:
-            kernels_info.append(get_current_kernel_info(str(kernel_id), app_name, app_path, app_config, log))
+            kernels_info.append(get_current_kernel_info(str(kernel_id), app_name, app_path, app_config, log, external_rptv_warp_selector))
     else:
         # for kernel_id in app_kernels_id:
-        kernels_info.append(get_current_kernel_info(str(kernel_id), app_name, app_path, app_config, log))
+        kernels_info.append(get_current_kernel_info(str(kernel_id), app_name, app_path, app_config, log, external_rptv_warp_selector))
 
     ############################
     # Simian Engine parameters #

@@ -38,7 +38,7 @@ def read_sass_trace_generator(sass_path: str) -> Generator[str, None, None]:
             if line:  # 跳过空行
                 yield line
 
-def parse(units_latency, sass_instructions, sass_path, logger):
+def parse(units_latency, sass_instructions, sass_path, logger, external_rptv_warp_selector=None):
     sass_trace = read_sass_trace_generator(sass_path)
     # sass_trace = open(sass_path,'r').read().strip().split('\n')
 
@@ -179,7 +179,7 @@ def parse(units_latency, sass_instructions, sass_path, logger):
                     math_expression = tensor_size_modifier.replace('x', '*')
                     try:
                         result = eval(math_expression)
-                        flops = int(result // 4)
+                        flops = int(result // 4) 
                     except Exception as e:
                         print(f"[Error] Invalid tensor size modifier expression: {tensor_size_modifier}")
                         exit(0)
@@ -265,41 +265,69 @@ def parse(units_latency, sass_instructions, sass_path, logger):
     for key, value in sorted_task_len_cnt:
         logger.write("task len: {:d} number: {:d}".format(key,value))
     # end logging 
-    # select representative warp using kmean clustering   
+    # select representative warp with external file
+    print(external_rptv_warp_selector)
+    if external_rptv_warp_selector:
+        external_rptv_sm_id = None
+        external_rptv_warp_id = None
+        # external_rptv_sm_and_warp_ids = None
+        with open(external_rptv_warp_selector, 'r') as f:
+            # Parse representative SM and Warp IDs from file f
+            lines = f.readlines()
+            for line in reversed(lines):  # prefer the last matching line if multiple
+                line = line.strip()
+                if "Representative warp - SM ID:" in line and ", Warp ID:" in line:
+                    try:
+                        # Expected format:
+                        # "Representative warp - SM ID: <SM>, Warp ID: <WARP>"
+                        after_prefix = line.split("Representative warp - SM ID:", 1)[1]
+                        sm_part, warp_part = after_prefix.split(", Warp ID:", 1)
+                        external_rptv_sm_id = sm_part.strip()
+                        external_rptv_warp_id = int(warp_part.strip())
+                        original_sm_and_warp_ids = (external_rptv_sm_id, external_rptv_warp_id)
+                        break
+                    except Exception:
+                        continue
+        print(f"Using external representative warp - SM ID: {external_rptv_sm_id}, Warp ID: {external_rptv_warp_id}")
+        logger.write(f"Using external representative warp - SM ID: {external_rptv_sm_id}, Warp ID: {external_rptv_warp_id}")
+        print(f"Length of task_list of representative warp: {len(task_list[external_rptv_sm_id][external_rptv_warp_id])}")
+        logger.write(f"Length of task_list of representative warp: {len(task_list[external_rptv_sm_id][external_rptv_warp_id])}")
+        rptv_warp_task_list = task_list[external_rptv_sm_id][external_rptv_warp_id]
+    else: # select representative warp using kmean clustering   
+        def transform_task_list(task_list, functional_units_list):
+            flattened_warps = []
+            warp_info = []  
+            
+            for sm_id in sorted(task_list.keys()):
+                for warp_id in sorted(task_list[sm_id].keys()):
+                    warp_vector = task_list[sm_id][warp_id]
+                    unit_counter = Counter(item[0] for item in warp_vector if item)
+                    count_vector = [unit_counter.get(unit, 0) for unit in functional_units_list]
+                    flattened_warps.append(count_vector)
+                    warp_info.append((sm_id, warp_id))
+            
+            return np.array(flattened_warps), warp_info
 
-    def transform_task_list(task_list, functional_units_list):
-        flattened_warps = []
-        warp_info = []  
-        
-        for sm_id in sorted(task_list.keys()):
-            for warp_id in sorted(task_list[sm_id].keys()):
-                warp_vector = task_list[sm_id][warp_id]
-                unit_counter = Counter(item[0] for item in warp_vector if item)
-                count_vector = [unit_counter.get(unit, 0) for unit in functional_units_list]
-                flattened_warps.append(count_vector)
-                warp_info.append((sm_id, warp_id))
-        
-        return np.array(flattened_warps), warp_info
+        def get_original_sm_and_warp_ids(representative_indices, warp_info):
+            if isinstance(representative_indices, list):
+                return [warp_info[i] for i in representative_indices]  # 列表情况
+            else:
+                return warp_info[representative_indices]  # 单个值的情况
 
-    def get_original_sm_and_warp_ids(representative_indices, warp_info):
-        if isinstance(representative_indices, list):
-            return [warp_info[i] for i in representative_indices]  # 列表情况
-        else:
-            return warp_info[representative_indices]  # 单个值的情况
+        kmeans_features, warp_info = transform_task_list(task_list, functional_units_list)
+        all_center_warp_idx_list, representative_index = rptv_warp_select(kmeans_features)
+        original_sm_and_warp_ids = get_original_sm_and_warp_ids(representative_index, warp_info)
 
-    kmeans_features, warp_info = transform_task_list(task_list, functional_units_list)
-    all_center_warp_idx_list, representative_index = rptv_warp_select(kmeans_features)
-    original_sm_and_warp_ids = get_original_sm_and_warp_ids(representative_index, warp_info)
+        print(f"Representative warp - SM ID: {original_sm_and_warp_ids[0]}, Warp ID: {original_sm_and_warp_ids[1]}")
+        logger.write(f"Representative warp - SM ID: {original_sm_and_warp_ids[0]}, Warp ID: {original_sm_and_warp_ids[1]}")
+        print(f"Length of task_list of representative warp: {len(task_list[original_sm_and_warp_ids[0]][original_sm_and_warp_ids[1]])}")
+        logger.write(f"Length of task_list of representative warp: {len(task_list[original_sm_and_warp_ids[0]][original_sm_and_warp_ids[1]])}")
 
-    print(f"Representative warp - SM ID: {original_sm_and_warp_ids[0]}, Warp ID: {original_sm_and_warp_ids[1]}")
-    logger.write(f"Representative warp - SM ID: {original_sm_and_warp_ids[0]}, Warp ID: {original_sm_and_warp_ids[1]}")
-    print(f"Length of task_list of representative warp: {len(task_list[original_sm_and_warp_ids[0]][original_sm_and_warp_ids[1]])}")
-    logger.write(f"Length of task_list of representative warp: {len(task_list[original_sm_and_warp_ids[0]][original_sm_and_warp_ids[1]])}")
-
-    # total_warp_num = 0
-    # for CTA_id in task_list:
-    #     total_warp_num += len(task_list[CTA_id])
-    rptv_warp_task_list = task_list[original_sm_and_warp_ids[0]][original_sm_and_warp_ids[1]]
+        total_warp_num = 0
+        for CTA_id in task_list:
+            total_warp_num += len(task_list[CTA_id])
+        # for example SM ID: 3#5#0#0, Warp ID: 6
+        rptv_warp_task_list = task_list[original_sm_and_warp_ids[0]][original_sm_and_warp_ids[1]]
 
     total_warp_num = 0
     # scan all CTA and Count warp number in all SM and sub-cores
@@ -323,6 +351,8 @@ def parse(units_latency, sass_instructions, sass_path, logger):
         logger.write("SM {:d} warp number:".format(sm_id), warp_num_count[sm_id])
         logger.write("SM {:d} warp instruction number:".format(sm_id), warp_instr_num_count[sm_id])
     logger.write("### Warp number and intr number distribution ###")
+    
+    
     # evaluate balance of warp_num_count across sub-cores
     WARP_BALANCE_THRESHOLD = 0.2  # allowed relative max deviation from mean (20%)
 
