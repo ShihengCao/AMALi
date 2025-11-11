@@ -266,7 +266,6 @@ def parse(units_latency, sass_instructions, sass_path, logger, external_rptv_war
         logger.write("task len: {:d} number: {:d}".format(key,value))
     # end logging 
     # select representative warp with external file
-    print(external_rptv_warp_selector)
     if external_rptv_warp_selector:
         external_rptv_sm_id = None
         external_rptv_warp_id = None
