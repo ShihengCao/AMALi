@@ -50,7 +50,7 @@ units_latency = {
     "slope_beta"   :  0.0366, # KLL model 
     "slope_gamma"   :  1.1891, # KLL model 
 }
-
+# we will calculate later in generate accelerator
 initial_interval = {
 
     # Initiation interval (II) = threadsPerWarp / #FULanes
@@ -63,6 +63,7 @@ initial_interval = {
 
     "LDST"              :   0,    
     "BRA"               :   0,
+    "Uniform"           :   0.5, # in hot chips 31 "RTX ON THE NVIDIA TURING GPU", note UDP 1 instr / clk, so we set 0.5 here
     # we will not use initial_interval for TCU for now
     # "iTCU"              :   32 / 1,
     # "hTCU"              :   128, # accumulator FP16
