@@ -1,6 +1,6 @@
 # AMALI: An Analytical Model for Accurately Modeling LLM Inference on Modern GPUs
 
-This repository contains the source code for [AMALi \[ISCA '25\]](https://doi.org/10.1145/3695053.3731064). AMALi solely focus on the native (SASS) ISAs without sacrificing accuracy, ease of use, or portability. The tool is currently focused on NVIDIA GPUs.
+This repository contains the source code for [AMALi \[ISCA '25\]](https://doi.org/10.1145/3695053.3731064). AMALi is a GPU analytical model. The tool is focused on NVIDIA GPUs.
 
 In shorts, how to use AMALi
 
@@ -29,9 +29,9 @@ mpiexec -n {parallellism} python main.py --app {app_path} --config {config_name}
 ### Simulation
 
 - Linux OS
-- python v>3.5
+- python v>3.10
   - conda install greenlet joblib
-  - pip install scikit-learn scipy 
+  - pip install -r requirements.txt
 - GCC > v5.x tested with 7.3.1 and 9 on centos 8
 - make
 - glibc
@@ -48,11 +48,7 @@ mpiexec -n {parallellism} python main.py --app {app_path} --config {config_name}
 
 Running simulation is straightforward. Here are the steps:
 
-1. **Configure & Update MPI path**
-    - In *simian.py*, update ***defaultMpichLibName*** with the ibmpich.so
-    - If you dont want to use MPI, update **useMPI** to False instead of True for the Simian engine paramater inside *ppt.py* file (line 278, **simianEngine** variable)
-
-2. **Extract the traces of the application**
+1. **Extract the traces of the application**
     - Go to ***tracing_tool*** folder and follow the instructions in the Readme file to build the tracing tool files
     - The ***tracing_tool*** extracts the application memory trace (automatically output a folder named ***memory_traces***) and the application SASS trace (automatically output a folder named ***sass_traces***). It also outputs a configuration file named **app_config.py** that has all information about the application kernels
     - For example, to get the traces for a certain application you have to call the tracer.so file that was built from the ***tracing_tool*** before running the application:
@@ -62,44 +58,35 @@ Running simulation is straightforward. Here are the steps:
       LD_PRELOAD=/path/to/AMALi/tracing_tool/tracer.so python test.py
       ```
 
-3. **Build the Reuse Distance tool**
+2. **Build the Reuse Distance tool**
    - Go to ***reuse_distance_tool*** and follow the instructions in the Readme file to build the code
 
-4. **Modeling the correct GPU configurations**  
+3. **Modeling the correct GPU configurations**  
 
     The ***hardware*** folder has an example of multiple hardware configurations. You can choose to model these or define your own in a new file. You can also define the ISA latencies numbers, and the compute capability configurations inside ***hardware/ISA*** and ***hardware/compute_capability***, respectively
 
-5. **Running the simulations**
-
-- For Parallel kernels execution, make sure to set the right libmpich.so library path in *defaultMpichLibName* variable inside *simian.py* file**
-  
-- TO RUN:
-
+4. **Running the simulations**
+    - TO RUN:
     ```bash
     python main.py --app {app_path} --config {config_name} --useMPI {0,1} --kernel {kernel_id} -f -l {0,1}
     ```
 
-    For example, running 2mm application on TITANV with sass traces. Assuming that 2mm path is *"/home/test/Workloads/2mm"*
+    For example, running 2mm application on A100 with sass traces. Assuming that 2mm path is *"/home/test/Workloads/2mm"*
 
     ```bash
-
-    python main.py --app /home/test/Workloads/2mm --config TITANV --useMPI 0 -l 1
-
+    python main.py --app /home/test/Workloads/2mm --config A100 --useMPI 0 -l 1
     ```
-
-    The above command will run all kernels sequentially, to run all kernel in parallel using the PDES engine:
-
-    ```bash
-
-    mpirun -n 2 python main.py --app /home/test/Workloads/2mm --config TITANV --useMPI 0 --kernel 1 -f -l 1
-
-    ```
-
     **Kernels are ordered in the *app_config.py* file. Please refer to the file to know the information of kernels and the orders**
 
-6. **Reading the output**
+5. **Reading the output**
 
-  The performance results are found inside each application file path. Outputs are per kernel.  
+    The performance results are found inside each application file path. Outputs are per kernel. 
+
+    ```bash
+    python run_post_process.py 2mm
+    ```
+
+  this will generate a csv file
 
 ## Papers
 - If you find this a helpful tool in your research, please consider citing as:
@@ -114,33 +101,8 @@ Running simulation is straightforward. Here are the steps:
     }
     ```
 
-  AMALi is implemented based on the open-source project: PPT-GPU
+  AMALi is implemented based on the open-source project: [PPT-GPU](https://github.com/lanl/PPT?tab=readme-ov-file) and other projects including [Accel-sim](https://github.com/yonsei-hpcp/gcom), [GCoM](https://github.com/yonsei-hpcp/gcom), [MDM](https://github.com/wanglu1991/MDM-instrumentation)
 
-- For more information, check out the [SC' 21](https://doi.org/10.1145/3458817.3476221) paper ***(Hybrid, Scalable, Trace-Driven Performance Modeling of GPGPUs)***.
-
-    If you find this a helpful tool in your research, please consider citing as:
-
-    ```bibtex
-    @inproceedings{Arafa2021PPT-GPU,
-      author = {Y. {Arafa} and A. {Badawy} and A. {ElWazir} and A. {Barai} and A. {Eker} and G. {Chennupati} and N. {Santhi} and S. {Eidenbenz}},
-      title = {Hybrid, Scalable, Trace-Driven Performance Modeling of GPGPUs},
-      year = {2021},
-      booktitle = {Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis},
-      series = {SC '21}
-    }
-    ```
-
-- The memory model is descibed in the [ICS' 20](https://doi.org/10.1145/3392717.3392761) paper.
-
-     ```bibtex
-    @inproceedings{Arafa2020PPT-GPU-MEM,
-      author = {Y. {Arafa} and A. {Badawy} and G. {Chennupati} and A. {Barai} and N. {Santhi} and S. {Eidenbenz}},
-      title = {Fast, Accurate, and Scalable Memory Modeling of GPGPUs Using Reuse Profiles},
-      year = {2020},
-      booktitle = {Proceedings of the 34th ACM International Conference on Supercomputing},
-      series = {ICS '20}
-    }
-    ```
 According to license of PPT-GPU, keep its license
 
 ## License
