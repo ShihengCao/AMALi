@@ -64,7 +64,7 @@ initial_interval = {
 
     "LDST"              :   0,    
     "BRA"               :   0,
-    "Uniform"           :   0.5, # in hot chips 31 "RTX ON THE NVIDIA TURING GPU", note UDP 1 instr / clk, so we set 0.5 here
+    "Uniform"           :   0.5, # in hot chips 31 "RTX ON THE NVIDIA TURING GPU", note UDP 1 instr / 2 clk, so we set 0.5 here
     # we will not use initial_interval for TCU for now
     #"iTCU"              :   320,
     #"hTCU"              :   320, # accumulator FP16 fma/clk/tensor core
@@ -107,7 +107,6 @@ sass_isa = {
     "VIADDMNMX"         : "iALU",
     "VIMNMX"            : "iALU",
     "VIMNMX3"           : "iALU",
-    # "CCTL"              : "iALU",
     # Single-Precision Floating Instructions
     "FADD"              : "fALU",
     "FADD32I"           : "fALU",
@@ -138,7 +137,7 @@ sass_isa = {
     "DSETP"             : "dALU",
     # SFU Special Instructions
     "MUFU"              : "SFU",
-    #Tensor Core
+    # Tensor Core
     "IMMA"              : "iTCU",
     "HMMA"              : "hTCU",
     "BMMA"              : "iTCU", 
@@ -183,7 +182,7 @@ sass_isa = {
     "PSETP"             : "iALU",
     "P2R"               : "iALU",
     "R2P"               : "iALU",
-   #Uniform Datapath Instructions
+    # Uniform Datapath Instructions
     "R2UR"              : "Uniform",
     "REDUX"             : "Uniform",
     "S2UR"              : "Uniform",
@@ -214,13 +213,12 @@ sass_isa = {
     "USHF"              : "Uniform",
     "USHL"              : "Uniform",
     "USHR"              : "Uniform",
-    "VOTEU"             : "Uniform",
-
+    "VOTEU"             : "Uniform",    
+    "UCGABAR_ARV"       : "Uniform", 
+    "UCGABAR_WAIT"      : "Uniform", 
+    "USETMAXREG"        : "Uniform",  
+    "USETSHMSZ"         : "Uniform",
     #Control Instructions
-    "UCGABAR_ARV"       : "BRA", # new !!
-    "UCGABAR_WAIT"      : "BRA", # new !!
-    "USETMAXREG"        : "BRA", # new !!  
-    "USETSHMSZ"         : "BRA", # new !!
     "ACQBULK"           : "BRA",
     "BMOV"              : "BRA",
     "BPT"               : "BRA",
@@ -230,7 +228,7 @@ sass_isa = {
     "BRXU"              : "BRA",
     "BSSY"              : "BRA",
     "BSYNC"             : "BRA",
-    "SYNCS"             : "BRA", # new ~=!
+    "SYNCS"             : "BRA",
     "CALL"              : "BRA",
     "CCTL"              : "BRA",
     "CCTLL"             : "BRA",
@@ -244,14 +242,13 @@ sass_isa = {
     "JMXU"              : "BRA",
     "KILL"              : "BRA",
     "NANOSLEEP"         : "BRA",
-    "PREEXIT"           : "BRA",# new ~~
+    "PREEXIT"           : "BRA",
     "RET"               : "BRA",
     "RPCMOV"            : "BRA",
-    # "REDAS"             : "BRA",
     "WARPSYNC"          : "BRA",
     "YIELD"             : "BRA",
-    "FENCE"             : "BRA", # new~=!
-    "MATCH"             : "BRA", # new ~=!
+    "FENCE"             : "BRA",
+    "MATCH"             : "BRA",
     # Miscellaneous Instructions
     "B2R"               : "iALU",
     "BAR"               : "iALU",
@@ -261,9 +258,7 @@ sass_isa = {
     "LEPC"              : "iALU",
     "NOP"               : "iALU",
     "PMTRIG"            : "iALU",
-    # "R2B"               : "iALU",
     "S2R"               : "iALU",
-    # "S2UR"              : "iALU",
     "SETCTAID"          : "iALU",
     "SETLMEMBASE"       : "iALU",
     "VOTE"              : "iALU"

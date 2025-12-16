@@ -140,7 +140,7 @@ def parse_out(app_name, front_keys=None):
     # Reorder columns: front keys first (in given order, if present), then the rest
     ordered_columns = [k for k in front_keys if k in column_order] + [k for k in column_order if k not in front_keys]
     
-    csv_path = os.path.join(out_dir, f"{app_name}_parsed.csv")
+    csv_path = os.path.join(out_dir, f"{app_name}_AMALi_results.csv")
     with open(csv_path, "w", newline="", encoding="utf-8") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=ordered_columns)
         writer.writeheader()

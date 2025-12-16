@@ -5,14 +5,7 @@
 # Instructions Latencies adopted from: 
 # Y. Arafa et al., "Low Overhead Instruction Latency Characterization for NVIDIA GPGPUs," HPEC'19
 # https://github.com/NMSU-PEARL/GPUs-ISA-Latencies
-# M. Khairy et al, "Accel-Sim: An Extensible Simulation Framework for Validated GPU Modeling" ISCA'20
-# https://github.com/accel-sim/accel-sim-framework
 
-# Memory Latencies adopted from:
-# H. Abdelkhalik et al., "Demystifying the Nvidia Ampere Architecture through Microbenchmarking and Instruction-level Analysis"
-# https://arxiv.org/pdf/2208.11174.pdf
-# M. Khairy et al, "Accel-Sim: An Extensible Simulation Framework for Validated GPU Modeling" ISCA'20
-# https://github.com/accel-sim/accel-sim-framework
 ##############################################################################
 
 units_latency = {
@@ -21,26 +14,24 @@ units_latency = {
     "iALU"              :   4,
     "fALU"              :   4,
     "hALU"              :   4,
-    "dALU"              :   4,
-    "Uniform"           :   2,
+    "dALU"              :   8,
 
-    "SFU"               :  23,
-    # for tensor core we use FMA/cycle instead and will calculate the latency later, the following values are useless
-    "hTCU"              :  256, # accumulator FP16
-    "fTCU"              :  256, # accumulator FP32
-    "bTCU"              :  256, # accumulator BF16
-    "dTCU"              :  64,
+    "SFU"               :   4,
+    "dSFU"              :   8,
 
-    "BRA"               :  4,
+    "iTCU"              :   64,
+    "hTCU"              :   64,
+
+    "BRA"               :   4,
     #Memory Units Latencies
-    "dram_mem_access"   :   290,
-    "l1_cache_access"   :   37,
-    "l2_cache_access"   :   224,
-    "local_mem_access"  :   290,
-    "const_mem_access"  :   290,
-    "shared_mem_ld"     :   23,
-    "shared_mem_st"     :   19,# ld 23 st 19
-    "tex_mem_access"    :   290,
+    "dram_mem_access"   :   302,
+    "l1_cache_access"   :   33,
+    "l2_cache_access"   :   213,
+    "local_mem_access"  :   302,
+    "const_mem_access"  :   8,
+    "shared_mem_ld"     :   33,
+    "shared_mem_st"     :   33,
+    "tex_mem_access"    :   436,
     "tex_cache_access"  :   86,
     "atomic_operation"  :   245,
     #Kernel_launch_ovhd get from Accel-sim benchmark
@@ -50,10 +41,7 @@ units_latency = {
     "slope_gamma"   :  9.3524e-01, # KLL model 1.1891
 
 }
-'''
-[np.float64(2144.161494223563), np.float64(2125.694745571838), np.float64(2122.907881695402), np.float64(2082.075697965517)] avg intercept 2118.70995486408
-二次拟合公式: slope = 1.0956e-03 * block_size^2 + -1.5389e-02 * block_size + 9.3524e-01
-'''
+
 # we will calculate later in generate accelerator
 initial_interval = {
     # Initiation interval (II) = threadsPerWarp / #FULanes
@@ -75,6 +63,7 @@ initial_interval = {
     # "hTCU"              :   320, # accumulator FP16
     # "fTCU"              :   320, # accumulator FP32
 }
+
 sass_isa = {
 
     # Integer Instructions
@@ -104,7 +93,7 @@ sass_isa = {
     "SHR"               : "iALU",
     "VABSDIFF"          : "iALU",
     "VABSDIFF4"         : "iALU",
-    # "CCTL"              : "iALU",
+    "CCTL"              : "iALU",
     # Single-Precision Floating Instructions
     "FADD"              : "fALU",
     "FADD32I"           : "fALU",
@@ -123,7 +112,6 @@ sass_isa = {
     "HADD2_32I"         : "hALU",
     "HFMA2"             : "hALU",
     "HFMA2_32I"         : "hALU",
-    "HMNMX2"            : "hALU", 
     "HMUL2"             : "hALU",
     "HMUL2_32I"         : "hALU",
     "HSET2"             : "hALU",
@@ -138,22 +126,16 @@ sass_isa = {
     #Tensor Core
     "IMMA"              : "iTCU",
     "HMMA"              : "hTCU",
-    "BMMA"              : "iTCU",
-    "DMMA"              : "dTCU",
     # Conversion Instructions
     "F2F"               : "iALU",
     "F2I"               : "iALU",
     "I2F"               : "iALU",
     "I2I"               : "iALU",
     "I2IP"              : "iALU",
-    "I2FP"              : "iALU",
-    "F2IP"              : "iALU",
-    "F2FP"              : "iALU",
     "FRND"              : "iALU",
     # Movement Instructions
     "MOV"               : "iALU",
     "MOV32I"            : "iALU",
-    "MOVM"              : "iALU",
     "PRMT"              : "iALU",
     "SEL"               : "iALU",
     "SGXT"              : "iALU",
@@ -163,50 +145,18 @@ sass_isa = {
     "PSETP"             : "iALU",
     "P2R"               : "iALU",
     "R2P"               : "iALU",
-   #Uniform Datapath Instructions
-    "R2UR"              : "Uniform",
-    "S2UR"              : "Uniform",
-    "UBMSK"             : "Uniform",
-    "UBREV"             : "Uniform",
-    "UCLEA"             : "Uniform",
-    "UFLO"              : "Uniform",
-    "UIADD3"            : "Uniform",
-    "UIADD3.64"         : "Uniform",
-    "UIMAD"             : "Uniform",
-    "UISETP"            : "Uniform",
-    "ULDC"              : "Uniform",
-    "ULEA"              : "Uniform",
-    "ULOP"              : "Uniform",
-    "ULOP3"             : "Uniform",
-    "ULOP32I"           : "Uniform",
-    "UP2UR"             : "Uniform",
-    "UMOV"              : "Uniform",
-    "UP2UR"             : "Uniform",
-    "UPLOP3"            : "Uniform",
-    "UPOPC"             : "Uniform",
-    "UPRMT"             : "Uniform",
-    "UPSETP"            : "Uniform",
-    "UR2UP"             : "Uniform",
-    "USEL"              : "Uniform",
-    "USGXT"             : "Uniform",
-    "USHF"              : "Uniform",
-    "USHL"              : "Uniform",
-    "USHR"              : "Uniform",
-    "VOTEU"             : "Uniform",
-    #Control Instructions
+    # Control Instructions
     "BMOV"              : "BRA",
     "BPT"               : "BRA",
     "BRA"               : "BRA",
     "BREAK"             : "BRA",
     "BRX"               : "BRA",
-    "BRXU"              : "BRA",
     "BSSY"              : "BRA",
     "BSYNC"             : "BRA",
     "CALL"              : "BRA",
     "EXIT"              : "BRA",
     "JMP"               : "BRA",
     "JMX"               : "BRA",
-    "JMXU"              : "BRA",
     "KILL"              : "BRA",
     "NANOSLEEP"         : "BRA",
     "RET"               : "BRA",

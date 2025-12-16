@@ -44,6 +44,7 @@ class Kernel():
 		## kernel local predictions outputs
 		self.pred_out = {}	
 		self.Idle_cycle_method = "AMALi" # GCoM or AMALi
+		self.Tensor_core_ii_scale_factor = self.acc.num_TC_units_per_SM // self.acc.num_warp_schedulers_per_SM # this is to handle that there are multiple TCUs in one warp scheduler, for example in Volta and Turing, for newer architectures, this value may be 1
 		
 		pred_out = self.pred_out
 		pred_out["app_path"] = kernel_info["app_path"]
@@ -458,17 +459,18 @@ class Kernel():
 			'''
 			issue_km, max_unit = -100, None
 			num_act_sub_core = min(x, num_sub_cores_per_SM)
-			# we accumulate all sass excuted on Tensor core
+			# We handle TCU specially, because TCU may have different initial interval with other functional units, for example TCU32.0 TCU16.0 TCU8.0 and so on and we need accumulate them together. 
+			# For units in functional_units dictionary, they are already accmulated, so every unit will occur once, except TCU 
 			tensor_core_iim = 0
 			for unit in functional_units:				
 				if "TCU" in unit:
-					iim = float(unit[3:]) # remove "TCU" prefix, e.g., unit = "TCU32.0", then iim = 32.0
+					iim = float(unit[3:]) / self.Tensor_core_ii_scale_factor # remove "TCU" prefix, e.g., unit = "TCU32.0", then iim = 32.0
 				else:
 					iim = self.acc.initial_interval[unit]
 				im = functional_units[unit] # num of instuction which used the unit
 				cur_issue_km = im * iim * x / (num_act_sub_core * issue_rate)
 				if "TCU" in unit:
-					tensor_core_iim += iim
+					tensor_core_iim += im * iim * x / (num_act_sub_core * issue_rate) 
 				if cur_issue_km > issue_km:
 					max_unit = unit
 
