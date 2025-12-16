@@ -247,12 +247,13 @@ def private_SM_computation(SM_id, kernel_id, grid_size, num_SMs, mem_trace_dir_p
         gmem_hit_rate = 0.0
         lmem_hit_rate = 0.0
 
+        parda_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../reuse_distance_tool/parda.x")
         if lmem_used:
-            cmd = "reuse_distance_tool/parda.x --input="+SMi_trans_file+" --sm_id="+str(SM_id)+" --lines="+str(umem_num_lines_tot)+\
+            cmd = str(parda_dir) + " --input="+SMi_trans_file+" --sm_id="+str(SM_id)+" --lines="+str(umem_num_lines_tot)+\
                   " --assoc="+str(l1_cache_associativity)+" --output_dir="+mem_trace_dir_path+" --kernel="+str(kernel_id)+" --lmem"
             os.system(cmd)
         else: 
-            cmd = "reuse_distance_tool/parda.x --input="+SMi_trans_file+" --sm_id="+str(SM_id)+" --lines="+str(umem_num_lines_tot)+\
+            cmd = str(parda_dir) + " --input="+SMi_trans_file+" --sm_id="+str(SM_id)+" --lines="+str(umem_num_lines_tot)+\
                 " --assoc="+str(l1_cache_associativity)+" --output_dir="+mem_trace_dir_path+" --kernel="+str(kernel_id)
             os.system(cmd)
 
@@ -385,7 +386,8 @@ def get_memory_perf(kernel_id, mem_trace_dir_path, grid_size, num_SMs, l1_cache_
     shared_num_lines, shared_trace_file = preprocess_shared_trace(shared_interleaved_trace, kernel_id, mem_trace_dir_path)
 
     ## call reuse_distance_tool to compute the RD & RP
-    cmd = "reuse_distance_tool/parda.x --input="+shared_trace_file+" --lines="+str(shared_num_lines)+\
+    parda_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../reuse_distance_tool/parda.x")
+    cmd = str(parda_dir) + " --input="+shared_trace_file+" --lines="+str(shared_num_lines)+\
           " --assoc="+str(l2_cache_associativity)+" --output_dir="+mem_trace_dir_path+" --kernel="+str(kernel_id)+" --l2"
     os.system(cmd)
 
