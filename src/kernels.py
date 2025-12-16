@@ -187,7 +187,7 @@ class Kernel():
 		pred_out["simulation_time_compute"] = (toc - tic)
 		pred_out.update(rptv_warp_GCoM_output)
 		# calculate the cpi
-		pred_out["cpi"] =   pred_out["AMALi (GCoM+TCM+KLL+ID)"] / pred_out["warps_instructions_executed"]
+		pred_out["cpi"] =   pred_out["AMALi"] / pred_out["warps_instructions_executed"]
 		# write output to file
 		write_to_file(pred_out)
 		# logging
@@ -346,7 +346,7 @@ class Kernel():
 		# add the kernel launch overhead
 		rptv_warp_GCoM_output["no_instructions_and_imc_miss"] = self.kernel_launch_latency
 		rptv_warp_GCoM_output["GCoM+TCM+KLL"] = rptv_warp_GCoM_output["GCoM+TCM"] + rptv_warp_GCoM_output["no_instructions_and_imc_miss"]
-		rptv_warp_GCoM_output["AMALi (GCoM+TCM+KLL+ID)"] = rptv_warp_GCoM_output["GCoM+TCM+KLL"] + rptv_warp_GCoM_output["C_idle_i_ID"] + rptv_warp_GCoM_output["C_idle_i_orig"] + rptv_warp_GCoM_output["C_idle_ij_orig"]
+		rptv_warp_GCoM_output["AMALi"] = rptv_warp_GCoM_output["GCoM+TCM+KLL"] + rptv_warp_GCoM_output["C_idle_i_ID"] + rptv_warp_GCoM_output["C_idle_i_orig"] + rptv_warp_GCoM_output["C_idle_ij_orig"]
 		return rptv_warp_GCoM_output
 		
 	def process_GCoM(self, warp: Warp, 
@@ -552,7 +552,7 @@ class Kernel():
 		C = C_active_i + C_idle_i
 		
 		general_GCoM_output = {
-			"AMALi (GCoM+TCM+KLL+ID)": 0,
+			"AMALi": 0,
 			"selected": selected,
 			"wait": wait,
 			"drain": drain,

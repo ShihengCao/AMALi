@@ -82,7 +82,7 @@ def parse_out(app_name, front_keys=None):
     
     Args:
         app_name: Application name
-        front_keys: List of keys to move to the front (optional). Defaults to ["kernel_id","kernel_name","AMALi (GCoM+TCM+KLL+ID)","selected","wait","drain","long_scoreboard","short_scoreboard","C_idle_ij_orig","C_idle_ij_ID","math_pipe_throttle","tex_throttle","lg_throttle","S_MSHR_i","S_NoC_i","S_Dram_i","C_idle_i_orig","C_idle_i_ID","no_instructions_and_imc_miss","GCoM+TCM","GCoM+TCM+KLL"] if not provided.
+        front_keys: List of keys to move to the front (optional). Defaults to ["kernel_id","kernel_name","AMALi","selected","wait","drain","long_scoreboard","short_scoreboard","C_idle_ij_orig","C_idle_ij_ID","math_pipe_throttle","tex_throttle","lg_throttle","S_MSHR_i","S_NoC_i","S_Dram_i","C_idle_i_orig","C_idle_i_ID","no_instructions_and_imc_miss","GCoM+TCM","GCoM+TCM+KLL"] if not provided.
     """
     out_dir = os.path.join("outputs", app_name)
     if not os.path.isdir(out_dir):
@@ -135,7 +135,7 @@ def parse_out(app_name, front_keys=None):
 
     # If front_keys is not provided, use default values
     if front_keys is None:
-        front_keys = ["kernel_id","kernel_name","AMALi (GCoM+TCM+KLL+ID)","selected","wait","drain","long_scoreboard","short_scoreboard","C_idle_ij_orig","C_idle_ij_ID","math_pipe_throttle","tex_throttle","lg_throttle","S_MSHR_i","S_NoC_i","S_Dram_i","C_idle_i_orig","C_idle_i_ID","no_instructions_and_imc_miss","GCoM+TCM","GCoM+TCM+KLL"]
+        front_keys = ["kernel_id","kernel_name","AMALi","selected","wait","drain","long_scoreboard","short_scoreboard","C_idle_ij_orig","C_idle_ij_ID","math_pipe_throttle","tex_throttle","lg_throttle","S_MSHR_i","S_NoC_i","S_Dram_i","C_idle_i_orig","C_idle_i_ID","no_instructions_and_imc_miss","GCoM+TCM","GCoM+TCM+KLL"]
 
     # Reorder columns: front keys first (in given order, if present), then the rest
     ordered_columns = [k for k in front_keys if k in column_order] + [k for k in column_order if k not in front_keys]
