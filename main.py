@@ -295,6 +295,10 @@ def main():
 
     app_kernels_id = app_config.app_kernels_id
     app_output_dir = app_name
+
+    if not os.path.exists("./outputs"):
+        os.makedirs("./outputs", exist_ok=True)
+        
     if all_kernels == True and os.path.exists("./outputs"):    
         # if the app_output_dir already exists, then remove kernel id from app_kernels_id
         if app_output_dir in os.listdir("./outputs"):
