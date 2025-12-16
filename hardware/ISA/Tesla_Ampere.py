@@ -23,7 +23,7 @@ units_latency = {
     "hALU"              :   4,
     "dALU"              :   4,
     "Uniform"           :   2,
-    
+
     "SFU"               :  23,
     # for tensor core we use FMA/cycle instead and will calculate the latency later, the following values are useless
     "hTCU"              :  256, # accumulator FP16
@@ -66,7 +66,7 @@ initial_interval = {
 
     "LDST"              :   0,    
     "BRA"               :   0,
-    "Uniform"           :   0.5, # in hot chips 31 "RTX ON THE NVIDIA TURING GPU", note UDP 1 instr / clk, so we set 0.5 here
+    "Uniform"           :   0.5, # in hot chips 31 "RTX ON THE NVIDIA TURING GPU", note UDP 1 instr / 2 clk, so we set 0.5 here
     # we will not use initial_interval for TCU for now
     # "bTCU"              :   256, # compute BF16 accumulator FP32
     # "hTCU"              :   256, # accumulator FP16
@@ -123,6 +123,7 @@ sass_isa = {
     "HADD2_32I"         : "hALU",
     "HFMA2"             : "hALU",
     "HFMA2_32I"         : "hALU",
+    "HMNMX2"            : "hALU", 
     "HMUL2"             : "hALU",
     "HMUL2_32I"         : "hALU",
     "HSET2"             : "hALU",
@@ -137,8 +138,7 @@ sass_isa = {
     #Tensor Core
     "IMMA"              : "iTCU",
     "HMMA"              : "hTCU",
-    "HMNMX2"            : "hTCU", # new !!
-    "BMMA"              : "iTCU", # new !!
+    "BMMA"              : "iTCU",
     "DMMA"              : "dTCU",
     # Conversion Instructions
     "F2F"               : "iALU",
@@ -146,14 +146,14 @@ sass_isa = {
     "I2F"               : "iALU",
     "I2I"               : "iALU",
     "I2IP"              : "iALU",
-    "I2FP"              : "iALU",# new !!
-    "F2IP"              : "iALU",# new !!
-    "F2FP"              : "iALU",# new !!
+    "I2FP"              : "iALU",
+    "F2IP"              : "iALU",
+    "F2FP"              : "iALU",
     "FRND"              : "iALU",
     # Movement Instructions
     "MOV"               : "iALU",
     "MOV32I"            : "iALU",
-    "MOVM"              : "iALU",# new !!
+    "MOVM"              : "iALU",
     "PRMT"              : "iALU",
     "SEL"               : "iALU",
     "SGXT"              : "iALU",
@@ -206,7 +206,7 @@ sass_isa = {
     "EXIT"              : "BRA",
     "JMP"               : "BRA",
     "JMX"               : "BRA",
-    "JMXU"              : "BRA",# new !!
+    "JMXU"              : "BRA",
     "KILL"              : "BRA",
     "NANOSLEEP"         : "BRA",
     "RET"               : "BRA",
