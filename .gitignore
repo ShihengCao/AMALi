@@ -39,6 +39,6 @@ Thumbs.db
 **/*.so
 **/*.o
 logs/
-outputs/
+outputs*/
 deprecated/
 micro_benchmark/kll

@@ -22,7 +22,8 @@ units_latency = {
     "fALU"              :   4,
     "hALU"              :   4,
     "dALU"              :   4,
-
+    "Uniform"           :   2,
+    
     "SFU"               :  23,
     # for tensor core we use FMA/cycle instead and will calculate the latency later, the following values are useless
     "hTCU"              :  256, # accumulator FP16
@@ -164,12 +165,10 @@ sass_isa = {
     "R2P"               : "iALU",
    #Uniform Datapath Instructions
     "R2UR"              : "Uniform",
-    "REDUX"             : "Uniform",# new !!
     "S2UR"              : "Uniform",
     "UBMSK"             : "Uniform",
     "UBREV"             : "Uniform",
     "UCLEA"             : "Uniform",
-    "UF2FP"             : "Uniform",# new !!
     "UFLO"              : "Uniform",
     "UIADD3"            : "Uniform",
     "UIADD3.64"         : "Uniform",
@@ -224,9 +223,8 @@ sass_isa = {
     "LEPC"              : "iALU",
     "NOP"               : "iALU",
     "PMTRIG"            : "iALU",
-    # "R2B"               : "iALU",
+    "R2B"               : "iALU",
     "S2R"               : "iALU",
-    # "S2UR"              : "iALU",
     "SETCTAID"          : "iALU",
     "SETLMEMBASE"       : "iALU",
     "VOTE"              : "iALU"
