@@ -328,6 +328,8 @@ class Kernel():
 											pred_out["active_SMs"],
 											pred_out["umem_hit_rate"])
 			rptv_warp_GCoM_output = {key: rptv_warp_GCoM_output[key] + less_CTA_output[key] for key in rptv_warp_GCoM_output}
+			rptv_warp_GCoM_output["GCoM+TCM"] -= less_CTA_output["drain"] 
+			rptv_warp_GCoM_output["drain"] -= less_CTA_output["drain"]
 		# add idle cycles
 		# if self.Idle_cycle_method == "GCoM":
 		# 	if idle_i_output is not None:
@@ -342,11 +344,12 @@ class Kernel():
 				rptv_warp_GCoM_output["C_idle_i_ID"] = max_instr_sub_core - rptv_warp_GCoM_output["selected"]
 			else:
 				rptv_warp_GCoM_output["C_idle_i_ID"] = 0
-			rptv_warp_GCoM_output["GCoM+ID"] = rptv_warp_GCoM_output["GCoM+TCM"] + rptv_warp_GCoM_output["C_idle_i_ID"] # + rptv_warp_GCoM_output["C_idle_ij_ID"]
+			# rptv_warp_GCoM_output["GCoM+ID"] = rptv_warp_GCoM_output["GCoM+TCM"] + rptv_warp_GCoM_output["C_idle_i_ID"] # + rptv_warp_GCoM_output["C_idle_ij_ID"]
 		# add the kernel launch overhead
 		rptv_warp_GCoM_output["no_instructions_and_imc_miss"] = self.kernel_launch_latency
 		rptv_warp_GCoM_output["GCoM+TCM+KLL"] = rptv_warp_GCoM_output["GCoM+TCM"] + rptv_warp_GCoM_output["no_instructions_and_imc_miss"]
-		rptv_warp_GCoM_output["AMALi"] = rptv_warp_GCoM_output["GCoM+TCM+KLL"] + rptv_warp_GCoM_output["C_idle_i_ID"] + rptv_warp_GCoM_output["C_idle_i_orig"] + rptv_warp_GCoM_output["C_idle_ij_orig"]
+		rptv_warp_GCoM_output["AMALi"] = rptv_warp_GCoM_output["GCoM+TCM+KLL"] + rptv_warp_GCoM_output["C_idle_i_ID"]
+		# + rptv_warp_GCoM_output["C_idle_i_orig"] + rptv_warp_GCoM_output["C_idle_ij_orig"]
 		return rptv_warp_GCoM_output
 		
 	def process_GCoM(self, warp: Warp, 
@@ -566,7 +569,7 @@ class Kernel():
 			"S_MSHR_i": S_MSHR_i,
 			"S_NoC_i": S_NoC_i,
 			"S_Dram_i": S_Dram_i,			
-			"C_idle_i_orig": C_idle_i,
+			# "C_idle_i_orig": C_idle_i,
 			"C_idle_i_ID": 0,	
 			"no_instructions_and_imc_miss": 0,		
 			"GCoM+TCM": C,
@@ -650,11 +653,15 @@ class Kernel():
 			Returns:
 				scaled_output_dict (dict): a dictionary of scaled outputs
 		'''
-		keys_need_scale = ["GCoM+TCM","selected","wait","drain","long_scoreboard","short_scoreboard","math_pipe_throttle","tex_throttle", "lg_throttle", "S_MSHR_i", "S_NoC_i", "S_Dram_i"]
+		keys_reduction = ["selected","wait","drain","long_scoreboard","short_scoreboard","math_pipe_throttle","tex_throttle", "lg_throttle", "S_MSHR_i", "S_NoC_i", "S_Dram_i"]
+		keys_need_scale = ["selected","wait","long_scoreboard","short_scoreboard","math_pipe_throttle","tex_throttle", "lg_throttle", "S_MSHR_i", "S_NoC_i", "S_Dram_i"]
 		scaled_output_dict = {}
 		for key in output_dict:
 			if isinstance(output_dict[key], (int, float)) and key in keys_need_scale:
 				scaled_output_dict[key] = output_dict[key] * scaler
 			else:
 				scaled_output_dict[key] = output_dict[key]
+		scaled_output_dict["GCoM+TCM"] = 0
+		for key in keys_reduction:
+			scaled_output_dict["GCoM+TCM"] += scaled_output_dict[key] 
 		return scaled_output_dict
