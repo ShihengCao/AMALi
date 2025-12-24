@@ -38,6 +38,7 @@ Thumbs.db
 *.o
 **/*.so
 **/*.o
+**/*.x
 logs/
 outputs*/
 deprecated/
