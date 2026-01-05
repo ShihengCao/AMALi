@@ -13,6 +13,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <fstream>
+#include <cstring>
 
 #include "utils/utils.h"
 #include "nvbit_tool.h"
@@ -226,6 +227,14 @@ void instrument_function_if_needed(CUcontext ctx, CUfunction func) {
         uint32_t cnt = 0;
         /* iterate on the static instructions */
         for (auto instr : instrs) {
+            /* Temporary workaround for a bug in NVBit 1.7.4, which does not correctly
+             * handle CALL.REL.NOINC. Instrumenting this instruction may lead to
+             * illegal memory access. */
+            if (!strcmp(instr->getOpcode(), "CALL.REL.NOINC")) {
+                printf("Warning: Ignoring CALL.REL.NOINC (NVBit bug)\n");
+                continue;
+            }
+
             if (cnt < instr_begin_interval || cnt >= instr_end_interval) {
                 cnt++;
                 continue;
@@ -390,23 +399,27 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
     if (kernel_id > MAX_KERNELS){
         exit(0);
     } 
-   
+
     if (cbid == API_CUDA_cuLaunchKernel_ptsz || cbid == API_CUDA_cuLaunchKernel || cbid == API_CUDA_cuLaunchGrid|| cbid == API_CUDA_cuLaunchCooperativeKernel_ptsz || cbid == API_CUDA_cuLaunchCooperativeKernel || cbid == API_CUDA_cuLaunch) {
         cuLaunchKernel_params *p = (cuLaunchKernel_params *)params;
             if (!is_exit) {
                 pthread_mutex_lock(&mutex);
                 instrument_function_if_needed(ctx, p->f);
-                nvbit_enable_instrumented(ctx, p->f, true);
+                bool trace_this_kernel =
+                    (kernel_ids_to_analyze.find(kernel_id) != kernel_ids_to_analyze.end());
+                nvbit_enable_instrumented(ctx, p->f, trace_this_kernel);
                 recv_thread_receiving = true;
 
-                cout<<"Kernel #"<<kernel_id<<"\n\n";
+                if (trace_this_kernel) {
+                    cout<<"Kernel #"<<kernel_id<<"\n\n";
 
-                kernel_gridX = p->gridDimX;
-                kernel_gridY = p->gridDimY;
-                kernel_gridZ = p->gridDimZ;
+                    kernel_gridX = p->gridDimX;
+                    kernel_gridY = p->gridDimY;
+                    kernel_gridZ = p->gridDimZ;
 
-                string file_name = "./sass_traces/kernel_"+ to_string(kernel_id) + ".sass";
-                insts_trace_fp.open(file_name);
+                    string file_name = "./sass_traces/kernel_"+ to_string(kernel_id) + ".sass";
+                    insts_trace_fp.open(file_name);
+                }
 
             } else {
                 /* make sure current kernel is completed */
@@ -470,7 +483,9 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                 inst_count = 0;
                 reg_dependency_map.clear();
                 pred_dependency_map.clear();
-                insts_trace_fp.close();
+                if (insts_trace_fp.is_open()) {
+                    insts_trace_fp.close();
+                }
                 
                 pthread_mutex_unlock(&mutex);
             }
@@ -482,17 +497,21 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
             if (!is_exit) {
                 pthread_mutex_lock(&mutex);
                 instrument_function_if_needed(ctx, p->f);
-                nvbit_enable_instrumented(ctx, p->f, true);
+                bool trace_this_kernel =
+                    (kernel_ids_to_analyze.find(kernel_id) != kernel_ids_to_analyze.end());
+                nvbit_enable_instrumented(ctx, p->f, trace_this_kernel);
                 recv_thread_receiving = true;
 
-                cout<<"Kernel #"<<kernel_id<<"\n\n";
+                if (trace_this_kernel) {
+                    cout<<"Kernel #"<<kernel_id<<"\n\n";
 
-                kernel_gridX = p->config->gridDimX;
-                kernel_gridY = p->config->gridDimY;
-                kernel_gridZ = p->config->gridDimZ;
+                    kernel_gridX = p->config->gridDimX;
+                    kernel_gridY = p->config->gridDimY;
+                    kernel_gridZ = p->config->gridDimZ;
 
-                string file_name = "./sass_traces/kernel_"+ to_string(kernel_id) + ".sass";
-                insts_trace_fp.open(file_name);
+                    string file_name = "./sass_traces/kernel_"+ to_string(kernel_id) + ".sass";
+                    insts_trace_fp.open(file_name);
+                }
 
             } else {
                 /* make sure current kernel is completed */
@@ -570,14 +589,37 @@ void nvbit_at_cuda_event(CUcontext ctx, int is_exit, nvbit_api_cuda_t cbid,
                 inst_count = 0;
                 reg_dependency_map.clear();
                 pred_dependency_map.clear();
-                insts_trace_fp.close();
+                if (insts_trace_fp.is_open()) {
+                    insts_trace_fp.close();
+                }
                 
                 pthread_mutex_unlock(&mutex);
             }
     }
-    else if (cbid == API_CUDA_cuMemcpyHtoD_v2 || cbid == API_CUDA_cuLaunchGridAsync || cbid == API_CUDA_cuGraphAddKernelNode || cbid == API_CUDA_cuGraphLaunch)
+    else if (cbid == API_CUDA_cuMemcpyHtoD_v2)
     {
         printf("nvbit_at_cuda_event: unhandled CUDA API call %s\n", name);
+    }
+    else if (cbid == API_CUDA_cuLaunchGridAsync)
+    {
+        printf("nvbit_at_cuda_event: unhandled CUDA API call %s\n", name);
+    }
+    else if (cbid == API_CUDA_cuGraphAddKernelNode)
+    {
+        /* Instrument kernels that are manually added to a CUDA graph so that
+         * when the graph is launched, the kernels are already instrumented. */
+        cuGraphAddKernelNode_params *p = (cuGraphAddKernelNode_params *)params;
+        CUfunction func = p->nodeParams->func;
+        if (!is_exit) {
+            instrument_function_if_needed(ctx, func);
+        }
+    }
+    else if (cbid == API_CUDA_cuGraphLaunch)
+    {
+        /* For now we do not change the synchronization/flush behavior for
+         * CUDA graphs; kernels executed via graphs are still handled by the
+         * per-kernel launch callbacks above. */
+        printf("nvbit_at_cuda_event: CUDA Graph launch %s\n", name);
     }
     // else {
     //     pass
