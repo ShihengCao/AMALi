@@ -22,7 +22,7 @@
 
 using namespace std;
 
-#define MAX_KERNELS 300
+#define MAX_KERNELS 300000
 
 /* channel used to communicate from GPU to CPU receiving thread */
 #define CHANNEL_SIZE (1l << 20)
@@ -122,9 +122,9 @@ void nvbit_at_init() {
     printf("%s\n", pad.c_str());
     int key = load_kernel_ids();
     if(key==1){
-        cout << "Warning ! Error loading kernel_ids.txt" << std::endl;
-        cout << "Warning ! Trace first 300 kernel by default" << std::endl;
-        for(int i=1;i<300;i++)
+        cout << "Warning ! Fail loading kernel_ids.txt" << std::endl;
+        cout << "Warning ! Trace first 300000 kernel by default" << std::endl;
+        for(int i=1;i<300000;i++)
             kernel_ids_to_analyze.insert(i);
     }
     app_config_fp.open("app_config.py");
