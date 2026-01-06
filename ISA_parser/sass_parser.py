@@ -263,9 +263,10 @@ def parse(units_latency, sass_instructions, sass_path, logger, external_rptv_war
     logger.write("number of warp:",warp_num)
     sorted_task_len_cnt = sorted(task_len_cnt.items(), key=lambda item: item[0], reverse=True)
     for key, value in sorted_task_len_cnt:
-        logger.write("task len: {:d} number: {:d}".format(key,value))
+        logger.write("Warp instruction count: {:d} warp count: {:d}".format(key,value))
     # end logging 
     # select representative warp with external file
+    original_sm_and_warp_ids = None
     if external_rptv_warp_selector:
         external_rptv_sm_id = None
         external_rptv_warp_id = None
@@ -352,8 +353,8 @@ def parse(units_latency, sass_instructions, sass_path, logger, external_rptv_war
     logger.write("### Warp number and intr number distribution ###")
     
     
-    # evaluate balance of warp_num_count across sub-cores
-    WARP_BALANCE_THRESHOLD = 0.2  # allowed relative max deviation from mean (20%)
+    # evaluate balance of warp_num_count across all sub-cores in the GPU
+    WARP_BALANCE_THRESHOLD = 0.1  # allowed relative max deviation from mean (10%)
 
     def is_counts_balanced(counts, threshold):
         if not counts:
@@ -367,34 +368,43 @@ def parse(units_latency, sass_instructions, sass_path, logger, external_rptv_war
         return max_rel_dev <= threshold, max_rel_dev
 
     logger.write("### Warp number balance check ###")
-    overall_counts = []
-    unbalanced_sms = []
+
+    # flatten all SM sub-core counts into a single GPU-wide list
+    all_subcore_counts = []
     for sm_id in sorted(warp_num_count.keys()):
         counts = warp_num_count[sm_id]
-        overall_counts.extend(counts)
-        balanced, max_rel = is_counts_balanced(counts, WARP_BALANCE_THRESHOLD)
+        all_subcore_counts.extend(counts)
         logger.write(f"SM {sm_id} warp counts:", counts)
-        logger.write(f"SM {sm_id} balanced within {WARP_BALANCE_THRESHOLD*100:.1f}%?:", balanced, f"(max_rel_dev={max_rel:.3f})")
-        if not balanced:
-            unbalanced_sms.append((sm_id, counts, max_rel))
 
-    # overall metric across all sub-cores on all SMs
-    if overall_counts:
-        mean_all = sum(overall_counts) / len(overall_counts)
-        std_all = math.sqrt(sum((c - mean_all) ** 2 for c in overall_counts) / len(overall_counts))
+    unbalanced_sms = []  # kept for backward compatibility (used as a boolean flag)
+
+    if all_subcore_counts:
+        gpu_balanced, max_rel_dev = is_counts_balanced(all_subcore_counts, WARP_BALANCE_THRESHOLD)
+        logger.write("All sub-core warp counts (GPU-wide):", all_subcore_counts)
+        logger.write(
+            f"GPU-wide balanced within {WARP_BALANCE_THRESHOLD*100:.1f}%?:",
+            gpu_balanced,
+            f"(max_rel_dev={max_rel_dev:.3f})",
+        )
+
+        # overall metric across all sub-cores on all SMs
+        mean_all = sum(all_subcore_counts) / len(all_subcore_counts)
+        std_all = math.sqrt(sum((c - mean_all) ** 2 for c in all_subcore_counts) / len(all_subcore_counts))
         cov_all = std_all / mean_all if mean_all != 0 else float('inf')
-        overall_balanced = cov_all <= WARP_BALANCE_THRESHOLD
         logger.write("Overall sub-core coefficient of variation (std/mean):", f"{cov_all:.3f}")
-        logger.write(f"Overall balanced within {WARP_BALANCE_THRESHOLD*100:.1f}%?:", overall_balanced)
+
+        if not gpu_balanced:
+            # store a single GPU-level entry to indicate imbalance
+            unbalanced_sms.append(("GPU", all_subcore_counts, max_rel_dev))
     else:
         logger.write("No warp counts available for overall balance check.")
 
     if unbalanced_sms:
-        logger.write("Unbalanced SMs (SM id, counts, max_rel_dev):")
-        for sm_id, counts, max_rel in unbalanced_sms:
-            logger.write(sm_id, counts, f"max_rel_dev={max_rel:.3f}")
+        logger.write("GPU warp distribution is unbalanced according to the threshold.")
+        for target, counts, max_rel in unbalanced_sms:
+            logger.write(target, counts, f"max_rel_dev={max_rel:.3f}")
     else:
-        logger.write("All SMs are balanced according to the threshold.")
+        logger.write("GPU sub-core warp distribution is balanced according to the threshold.")
     logger.write("### Warp number balance check ###")
 
     return rptv_warp_task_list, count_gmem_reqs, original_sm_and_warp_ids, total_warp_num, active_SMs_num, unbalanced_sms, max_sub_core_instr_num
