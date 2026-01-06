@@ -266,6 +266,7 @@ class Kernel():
 		# run interval analysis on the represetative warp
 		interval_analysis_result = rptv_warp.interval_analyze()
 		pred_out["warps_instructions_executed"] = rptv_warp.current_inst * total_warp_num # used in calculating cpi
+		print("max_sub_core_instr_from_traces",max_sub_core_instr_from_traces,"unbanlance_sms",unbanlance_sms)
 		max_instr_sub_core = rptv_warp.current_inst * max_warp_per_SM // self.acc.num_warp_schedulers_per_SM if unbanlance_sms else max_sub_core_instr_from_traces
 		gcom_arg_CTA = min(mean_CTA_per_SM, pred_out["allocated_active_blocks_per_SM"])
 		gcom_arg_SM_warp_num = gcom_arg_CTA * pred_out["allocated_active_warps_per_block"]
@@ -319,17 +320,17 @@ class Kernel():
 		if repeat_times > 1:
 			rptv_warp_GCoM_output = self.output_scaler(rptv_warp_GCoM_output, repeat_times)
 		# schedule less CTA for rptv warp
-		if mean_CTA_per_SM % gcom_arg_CTA != 0:
-			less_CTA_num = mean_CTA_per_SM % gcom_arg_CTA
-			self.logger.write("profiling rtpv warp based on the remaining CTA on SM:", less_CTA_num)
-			less_CTA_output = self.process_GCoM(rptv_warp, interval_analysis_result,
-											ceil(less_CTA_num * pred_out["allocated_active_warps_per_block"] / self.acc.num_warp_schedulers_per_SM,1), 
-											less_CTA_num * pred_out["allocated_active_warps_per_block"], 
-											pred_out["active_SMs"],
-											pred_out["umem_hit_rate"])
-			rptv_warp_GCoM_output = {key: rptv_warp_GCoM_output[key] + less_CTA_output[key] for key in rptv_warp_GCoM_output}
-			rptv_warp_GCoM_output["GCoM+TCM"] -= less_CTA_output["drain"] 
-			rptv_warp_GCoM_output["drain"] -= less_CTA_output["drain"]
+		# if mean_CTA_per_SM % gcom_arg_CTA != 0:
+		# 	less_CTA_num = mean_CTA_per_SM % gcom_arg_CTA
+		# 	self.logger.write("profiling rtpv warp based on the remaining CTA on SM:", less_CTA_num)
+		# 	less_CTA_output = self.process_GCoM(rptv_warp, interval_analysis_result,
+		# 									ceil(less_CTA_num * pred_out["allocated_active_warps_per_block"] / self.acc.num_warp_schedulers_per_SM,1), 
+		# 									less_CTA_num * pred_out["allocated_active_warps_per_block"], 
+		# 									pred_out["active_SMs"],
+		# 									pred_out["umem_hit_rate"])
+		# 	rptv_warp_GCoM_output = {key: rptv_warp_GCoM_output[key] + less_CTA_output[key] for key in rptv_warp_GCoM_output}
+		# 	rptv_warp_GCoM_output["GCoM+TCM"] -= less_CTA_output["drain"] 
+		# 	rptv_warp_GCoM_output["drain"] -= less_CTA_output["drain"]
 		# add idle cycles
 		# if self.Idle_cycle_method == "GCoM":
 		# 	if idle_i_output is not None:
@@ -465,7 +466,9 @@ class Kernel():
 			# We handle TCU specially, because TCU may have different initial interval with other functional units, for example TCU32.0 TCU16.0 TCU8.0 and so on and we need accumulate them together. 
 			# For units in functional_units dictionary, they are already accmulated, so every unit will occur once, except TCU 
 			tensor_core_iim = 0
-			for unit in functional_units:				
+			for unit in functional_units:	
+				if unit == "LDST":
+					continue			
 				if "TCU" in unit:
 					iim = float(unit[3:]) / self.Tensor_core_ii_scale_factor # remove "TCU" prefix, e.g., unit = "TCU32.0", then iim = 32.0
 				else:
@@ -531,24 +534,25 @@ class Kernel():
 			return result_cm, all_struct_info
 
 		result_cm1, all_struct_info1 = com_struct_and_mem_struct(num_cncr_warps)
-		com1, mem1 = result_cm1
-		result_cm2, all_struct_info2 = com_struct_and_mem_struct(warps_per_SM % num_cncr_warps)
-		com2, mem2 = result_cm2
-		math_pipe_throttle = com1 * (warps_per_SM // num_cncr_warps) + com2
-		tex_throttle = mem1 * (warps_per_SM // num_cncr_warps) + mem2
-		if warps_per_SM // num_cncr_warps > 0:
-			self.logger.write(all_struct_info1)
-		if warps_per_SM % num_cncr_warps > 0:
-			self.logger.write(all_struct_info2)
-		
-		MDM_output = self.process_MDM(interval_list, active_SMs, umem_hit_rate, warps_per_SM)
+		# com1, mem1 = result_cm1
+		# result_cm2, all_struct_info2 = com_struct_and_mem_struct(warps_per_SM % num_cncr_warps)
+		# com2, mem2 = result_cm2
+		# math_pipe_throttle = com1 * (warps_per_SM // num_cncr_warps) + com2
+		# lg_throttle = mem1 * (warps_per_SM // num_cncr_warps) + mem2
+		math_pipe_throttle, lg_throttle = result_cm1
+		# if warps_per_SM // num_cncr_warps > 0:
+		# 	self.logger.write(all_struct_info1)
+		# if warps_per_SM % num_cncr_warps > 0:
+		# 	self.logger.write(all_struct_info2)
+		self.logger.write(all_struct_info1)
+		MDM_output = self.process_MDM(interval_list, active_SMs, umem_hit_rate, num_cncr_warps)
 		
 		S_MSHR_i = float(MDM_output["MSHR"])
 		S_NoC_i = float(MDM_output["NoC"])
 		S_Dram_i = float(MDM_output["Dram"])
 		
-		lg_throttle = S_MSHR_i + S_NoC_i + S_Dram_i
-		Si = math_pipe_throttle + tex_throttle + lg_throttle
+		mio_throttle = S_MSHR_i + S_NoC_i + S_Dram_i
+		Si = math_pipe_throttle + lg_throttle + mio_throttle
 		C_active_i = C_ij + Si
 
 		C_idle_i = 0 # we will calculate it later in kernel
@@ -564,8 +568,8 @@ class Kernel():
 			"C_idle_ij_orig": C_idle_ij,
 			"C_idle_ij_ID": 0,
 			"math_pipe_throttle": math_pipe_throttle,
-			"tex_throttle": tex_throttle,
 			"lg_throttle": lg_throttle,
+			"mio_throttle": mio_throttle,
 			"S_MSHR_i": S_MSHR_i,
 			"S_NoC_i": S_NoC_i,
 			"S_Dram_i": S_Dram_i,			
@@ -626,10 +630,10 @@ class Kernel():
 			LLC_Miss_Rate = 1 - umem_hit_rate
 			L_Min_Dram = self.acc.dram_mem_access_latency
 			# L_no_contention = L_Min_LLC + LLC_Miss_Rate * L_Min_Dram
-			#S_MSHR = (M_read * W // num_MSHR - 1) * S_Mem if is_MD else 0
+			# S_MSHR = (M_read * W // num_MSHR - 1) * S_Mem if is_MD else 0
 			S_MSHR = 0
 
-			L_noc_service = self.acc.dram_clockspeed * (self.acc.l1_cache_line_size / self.acc.noc_bandwidth)
+			L_noc_service = self.acc.GPU_clockspeed * (self.acc.l1_cache_line_size / self.acc.noc_bandwidth) * LLC_Miss_Rate # align with gcom opensource code
 			L_dram_service = self.acc.dram_clockspeed * (self.acc.l2_cache_line_size / self.acc.dram_bandwidth) * LLC_Miss_Rate
 			is_NoC_saturated = L_noc_service * M * num_SM > L_Min_LLC + L_Min_Dram
 			is_Dram_saturated = L_dram_service * M * num_SM > L_Min_LLC + L_Min_Dram
@@ -653,8 +657,8 @@ class Kernel():
 			Returns:
 				scaled_output_dict (dict): a dictionary of scaled outputs
 		'''
-		keys_reduction = ["selected","wait","drain","long_scoreboard","short_scoreboard","math_pipe_throttle","tex_throttle", "lg_throttle", "S_MSHR_i", "S_NoC_i", "S_Dram_i"]
-		keys_need_scale = ["selected","wait","long_scoreboard","short_scoreboard","math_pipe_throttle","tex_throttle", "lg_throttle", "S_MSHR_i", "S_NoC_i", "S_Dram_i"]
+		keys_reduction = ["selected","wait","drain","long_scoreboard","short_scoreboard","math_pipe_throttle","mio_throttle", "lg_throttle", "S_MSHR_i", "S_NoC_i", "S_Dram_i"]
+		keys_need_scale = ["selected","wait","long_scoreboard","short_scoreboard","math_pipe_throttle","mio_throttle", "lg_throttle", "S_MSHR_i", "S_NoC_i", "S_Dram_i"]
 		scaled_output_dict = {}
 		for key in output_dict:
 			if isinstance(output_dict[key], (int, float)) and key in keys_need_scale:
@@ -664,4 +668,5 @@ class Kernel():
 		scaled_output_dict["GCoM+TCM"] = 0
 		for key in keys_reduction:
 			scaled_output_dict["GCoM+TCM"] += scaled_output_dict[key] 
+		scaled_output_dict["GCoM+TCM"] -= scaled_output_dict["S_Dram_i"] + scaled_output_dict["S_MSHR_i"] + scaled_output_dict["S_NoC_i"] # because S_Dram_i S_MSHR_i and S_NoC_i are included in mio_throttle
 		return scaled_output_dict
