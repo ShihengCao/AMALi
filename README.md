@@ -1,113 +1,112 @@
-# AMALI: An Analytical Model for Accurately Modeling LLM Inference on Modern GPUs
+# AMALi: An Analytical Model for Accurately Modeling LLM Inference on Modern GPUs
 
-This repository contains the source code for [AMALi \[ISCA '25\]](https://doi.org/10.1145/3695053.3731064). AMALi is a GPU analytical model. The tool is focused on NVIDIA GPUs.
+This repository contains the source code for [AMALi (ISCA '25)](https://doi.org/10.1145/3695053.3731064). AMALi is a GPU analytical model focused on NVIDIA GPUs.
 
-In shorts, how to use AMALi
+## Citation
 
-```bash
-# trace apps
-LD_PRELOAD=/path/to/AMALi/tracing_tool/tracer.so {exe}
-# run analysis 
-# simple use. The following will profiling with A100 config and app_name is 'nvidia'
-python main.py --app ~/Benchmarks/DeepBench-master/nvidia/ --config A100
-python run_post_process.py nvidia # this will parse log and generate .csv file in output/nvidia/
-# --app is the path of tracing files, and the last dir will be used as app_name
-# -f is force delete prevous outputs and logs of current app, 
-# -l control log mode is logging or not (default 1).
-python main.py --app {app_path} --config {config_name} --useMPI {0,1} --kernel {kernel_id} -f -l {0,1}
-# if do not use MPI
-python main.py --app {app_path} --config {config_name} --kernel {kernel_id} -f -l {0,1}
-# without kernel_id args, AMALi will analyze all kernel by default
-python main.py --app {app_path} --config {config_name} -f -l {0,1}
-# or run with mpi, NOT test fully!!
-PATH=/path/to/mpich/mpich-install/bin:$PATH ; export PATH
-mpiexec -n {parallellism} python main.py --app {app_path} --config {config_name} --useMPI {0,1} --kernel {kernel_id} -f -l {0,1}
+If you find this tool helpful in your research, please consider citing:
+
+```bibtex
+@inproceedings{Cao2025AMALI,
+  author = {Shiheng Cao and Junmin Wu and Junshi Chen and Hong An and Zhibin Yu},
+  title = {AMALI: An Analytical Model for Accurately Modeling LLM Inference on Modern GPUs},
+  year = {2025},
+  booktitle = {Proceedings of the ACM/IEEE International Symposium on Computer Architecture},
+  series = {ISCA '25}
+}
 ```
 
-## Dependencies
+## Requirements
 
-### Simulation
+- OS: Linux
+- Python >= 3.10
+  - `pip install -r requirements.txt`
+- GCC >= 5.x (tested with 7.3.1 and 9 on CentOS 8)
+- `make`, `glibc`
+- (Optional) MPICH 3.2.3 (if you plan to use the PDES engine / MPI mode; not fully tested)
 
-- Linux OS
-- python v>3.10
-  - conda install greenlet joblib
-  - pip install -r requirements.txt
-- GCC > v5.x tested with 7.3.1 and 9 on centos 8
-- make
-- glibc
-- MPICH v.3.2.3 (if you plan to use the PDES engine to run multiple kernels in parallel)
+For tracing tool dependencies (CUDA/NVBit/driver constraints), see `tracing_tool/README.md`.
 
-### Extracting the traces
+## Quickstart
 
-- A GPU device with compute capability = 3.5 or later
-- Software dependencies for extracting the memory traces and the SASS instructions traces are in the ***tracing_tool*** directory
+Run the following commands from the `AMALi/` directory (this README's directory).
 
-#### see *dependecies* for the packages and versions tested on
+### 0) Install Python dependencies
 
-## Steps for running  
+```bash
+pip install -r requirements.txt
+```
 
-Running simulation is straightforward. Here are the steps:
+### 1) Trace an application
 
-1. **Extract the traces of the application**
-    - Go to ***tracing_tool*** folder and follow the instructions in the Readme file to build the tracing tool files
-    - The ***tracing_tool*** extracts the application memory trace (automatically output a folder named ***memory_traces***) and the application SASS trace (automatically output a folder named ***sass_traces***). It also outputs a configuration file named **app_config.py** that has all information about the application kernels
-    - For example, to get the traces for a certain application you have to call the tracer.so file that was built from the ***tracing_tool*** before running the application:
+Run the target program with the tracer preloaded. The tracer generates `memory_traces/`, `sass_traces/`, and `app_config.py` in the current working directory.
 
-      ```bash
-      LD_PRELOAD=/path/to/AMALi/tracing_tool/tracer.so ./2mm.out
-      LD_PRELOAD=/path/to/AMALi/tracing_tool/tracer.so python test.py
-      ```
+```bash
+LD_PRELOAD=/path/to/AMALi/tracing_tool/tracer.so <your_exe>
+```
 
-2. **Build the Reuse Distance tool**
-   - Go to ***reuse_distance_tool*** and follow the instructions in the Readme file to build the code
+### 2) Build the reuse-distance tool
 
-3. **Modeling the correct GPU configurations**  
+```bash
+cd reuse_distance_tool && make
+```
 
-    The ***hardware*** folder has an example of multiple hardware configurations. You can choose to model these or define your own in a new file. You can also define the ISA latencies numbers, and the compute capability configurations inside ***hardware/ISA*** and ***hardware/compute_capability***, respectively
+### 3) Run analysis
 
-4. **Running the simulations**
-    - TO RUN:
-    ```bash
-    python main.py --app {app_path} --config {config_name} --useMPI {0,1} --kernel {kernel_id} -f -l {0,1}
-    ```
+`--app` should point to the *trace directory* (it must contain `app_config.py`, `memory_traces/`, and `sass_traces/`).
 
-    For example, running 2mm application on A100 with sass traces. Assuming that 2mm path is *"/home/test/Workloads/2mm"*
+```bash
+# A concrete example path: analyze traces under ~/Benchmarks/DeepBench/nvidia/gemm/ with A100 config.
+python main.py --app ~/Benchmarks/DeepBench/nvidia/gemm --config A100
+```
 
-    ```bash
-    python main.py --app /home/test/Workloads/2mm --config A100 --useMPI 0 -l 1
-    ```
-    **Kernels are ordered in the *app_config.py* file. Please refer to the file to know the information of kernels and the orders**
+By default, `app_name` is the last directory name of `--app` (here: `gemm`). Logs and outputs are written to `logs/<app_name>/` and `outputs/<app_name>/` under this repo.
 
-5. **Reading the output**
+### 4) Post-process results
 
-    The performance results are found inside each application file path. Outputs are per kernel. 
+```bash
+python run_post_process.py gemm
+```
 
-    ```bash
-    python run_post_process.py 2mm
-    ```
+This parses logs and generates `.csv` files under `outputs/gemm/`.
 
-  this will generate a csv file
+## CLI Reference
 
-## Papers
-- If you find this a helpful tool in your research, please consider citing as:
+```text
+--app <path>        Trace directory path (must contain app_config.py, memory_traces/, sass_traces/)
+--config <name>     GPU config name (e.g., A100)
+--kernel <id>       Analyze a specific kernel; omit to analyze all kernels; !! Without --kernel, AMALi will filter out the kernels that have already been analyzed based on the output folder.
+--name <name>       Override app_name (defaults to last dir name of --app)
+-l, --log {0,1}     Enable logging (default 1)
+-f, --force_delete  Remove existing outputs/logs for this app_name
+--useMPI {0,1}      MPI support (experimental / not fully tested)
+```
 
-    ```bibtex
-    @inproceedings{Cao2025AMALI,
-      author = {Shiheng Cao and Junmin Wu and Junshi Chen and Hong An and Zhibin Yu},
-      title = {AMALI: An Analytical Model for Accurately Modeling LLM Inference on Modern GPUs},
-      year = {2025},
-      booktitle = {Proceedings of the ACM/IEEE International Symposium on Computer Architecture},
-      series = {ISCA '25}
-    }
-    ```
+## MPI (Experimental)
 
-  AMALi is implemented based on the open-source project: [PPT-GPU](https://github.com/lanl/PPT?tab=readme-ov-file) and other projects including [Accel-sim](https://github.com/yonsei-hpcp/gcom), [GCoM](https://github.com/yonsei-hpcp/gcom), [MDM](https://github.com/wanglu1991/MDM-instrumentation)
+If you want to try running with MPI, prepend `mpiexec` and enable `--useMPI 1` (not fully tested):
 
-According to license of PPT-GPU, keep its license
+```bash
+mpiexec -n <parallelism> python main.py --app <app_path> --config <config_name> --useMPI 1 --kernel <kernel_id> -f -l 1
+```
+
+## Result Explanation
+
+```text
+AMALi = selected + wait + drain + long_scoreboard + short_scoreboard +
+        math_pipe_throttle + lg_throttle + mio_throttle +
+        C_idle_i_ID + no_instructions_and_imc_miss
+
+mio_throttle = S_MSHR_i + S_NoC_i + S_Dram_i
+```
 
 ## License
 
-&copy 2017. Triad National Security, LLC. All rights reserved.
+AMALi is implemented based on the open-source project: [PPT-GPU](https://github.com/lanl/PPT?tab=readme-ov-file) and other projects including [Accel-sim](https://github.com/accel-sim/accel-sim-framework), [GCoM](https://github.com/yonsei-hpcp/gcom), [MDM](https://github.com/wanglu1991/MDM-instrumentation).
+
+According to license of PPT-GPU, keep its license:
+
+&copy; 2017. Triad National Security, LLC. All rights reserved.
 
 This program was produced under U.S. Government contract 89233218CNA000001 for Los Alamos National Laboratory (LANL), which is operated by Triad National Security, LLC for the U.S. Department of Energy/National Nuclear Security Administration.
 
